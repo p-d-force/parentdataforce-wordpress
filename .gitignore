@@ -1,0 +1,19 @@
+# Secrets
+credentials.json
+.env
+*.key
+*.pem
+
+# WordPress core mirror (regenerated via tools)
+wordpress-copy/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

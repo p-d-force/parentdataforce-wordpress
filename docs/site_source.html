@@ -1,0 +1,4118 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Parent Data Force — Data-driven advocacy for families. Tracking complaints, records, outcomes, and systemic patterns across Massachusetts districts.">
+    <meta property="og:title" content="Home | MAKING DATA MAKE SENSE">
+    <meta property="og:description" content="Parent Data Force — Data-driven advocacy for families. Tracking complaints, records, outcomes, and systemic patterns across Massachusetts districts.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.parentdataforce.com/">
+    <meta property="og:image" content="https://www.parentdataforce.com/assets/images/logo.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://www.parentdataforce.com/">
+        <title>🐴 Home | Parent Data Force</title>
+    <link rel="icon" type="image/png" href="/assets/images/logo.png">
+    <link rel="stylesheet" href="https://www.parentdataforce.com/assets/css/styles.css?v=1784032043">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+
+
+
+
+
+
+<body>
+        
+
+
+
+
+
+
+    <nav class="nav" id="nav">
+
+
+
+
+
+
+
+        <div class="nav-container">
+
+
+
+
+
+
+
+            <a href="/" class="nav-logo">
+
+
+
+
+
+
+
+                <img src="https://www.parentdataforce.com/assets/images/logo.png?v=1783864479" alt="Parent Data Force Logo" class="nav-logo-img">
+
+
+
+
+
+
+
+                <span class="nav-logo-text">PARENT DATA FORCE</span>
+
+
+
+
+
+
+
+            </a>
+
+
+
+
+
+
+
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+
+
+
+
+
+
+
+                <span class="hamburger"></span>
+
+
+
+
+
+
+
+            </button>
+
+
+
+
+
+
+
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/data/" class="nav-link">Data</a></li>
+
+
+
+
+
+
+
+                <li><a href="/districts/" class="nav-link">Districts</a></li>
+
+
+
+
+
+
+
+                <li><a href="/cases/" class="nav-link">Current Focus</a></li>
+
+
+
+
+
+
+
+                <li><a href="/articles/" class="nav-link">Articles</a></li>
+
+
+
+
+
+
+
+                <li><a href="/appearances/" class="nav-link">Appearances</a></li>
+
+
+
+
+
+
+
+                <li><a href="/resources/" class="nav-link">Resources</a></li>
+
+
+
+
+
+
+
+                <li><a href="/about/" class="nav-link">About</a></li>
+
+
+
+
+
+
+
+                <li>
+
+
+
+
+
+
+
+                    <a href="/search.php" class="nav-icon" aria-label="Search" title="Search">
+
+
+
+
+
+
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+
+
+
+
+
+
+
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+
+
+
+
+
+
+
+                        </svg>
+
+
+
+
+
+
+
+                    </a>
+
+
+
+
+
+
+
+                </li>
+
+
+
+
+
+
+
+                <li>
+
+
+
+
+
+
+
+                    <a href="https://www.facebook.com/ParentDataForce" class="nav-icon" aria-label="Facebook" title="Parent Data Force on Facebook" target="_blank" rel="noopener">
+
+
+
+
+
+
+
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+
+
+
+
+
+
+
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path>
+
+
+
+
+
+
+
+                        </svg>
+
+
+
+
+
+
+
+                    </a>
+
+
+
+
+
+
+
+                </li>
+
+
+
+
+
+
+
+                <li><a href="/submit/" class="nav-link nav-link-tip">Submit Data</a></li>
+
+
+
+
+
+
+
+                <li><a href="/donate/" class="btn btn-primary" style="font-size:0.85rem;padding:0.45rem 0.85rem;">❤ Donate</a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        <circle cx="12" cy="12" r="5"><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42">
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+
+
+
+
+
+                        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z">
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+
+            </path></path></circle></ul>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </nav>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="hero" id="hero">
+
+
+
+
+
+
+
+    <div class="hero-bg"></div>
+
+
+
+
+
+
+
+    <div class="hero-overlay"></div>
+
+
+
+
+
+
+
+    <div class="hero-content">
+
+
+
+
+
+
+
+        <div class="hero-tagline">MAKING DATA MAKE SENSE</div>
+
+
+
+
+
+
+
+        <h1 class="hero-title">
+
+
+
+
+
+
+
+            <span class="hero-title-line">Data-Driven Advocacy</span>
+
+
+
+
+
+
+
+            <span class="hero-title-accent">for Families</span>
+
+
+
+
+
+
+
+        </h1>
+
+
+
+
+
+
+
+        <p class="hero-subtitle">
+
+
+
+
+
+
+
+            Independent special education and public accountability advocacy. 
+
+
+
+
+
+
+
+            Tracking complaints, records, outcomes, and systemic patterns across Massachusetts districts.
+
+
+
+
+
+
+
+        </p>
+
+
+
+
+
+
+
+        <div class="hero-cta">
+
+
+
+
+
+
+
+            <a href="/cases/" class="btn btn-primary">
+
+
+
+
+
+
+
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+
+
+
+
+
+
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+
+
+
+
+
+
+
+                </svg>
+
+
+
+
+
+
+
+                View Cases
+
+
+
+
+
+
+
+            </a>
+
+
+
+
+
+
+
+            <a href="/articles/" class="btn btn-secondary">
+
+
+
+
+
+
+
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+
+
+
+
+
+
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+
+
+
+
+
+
+
+                </svg>
+
+
+
+
+
+
+
+                Read Articles
+
+
+
+
+
+
+
+            </a>
+
+
+
+
+
+
+
+            <a href="/submit/" class="btn btn-tip">
+
+
+
+
+
+
+
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+
+
+
+
+
+
+                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+
+
+
+
+
+
+
+                </svg>
+
+
+
+
+
+
+
+                Submit a Tip
+
+
+
+
+
+
+
+            </a>
+
+
+
+
+
+
+
+            <a href="/data/" class="btn btn-ghost">
+
+
+
+
+
+
+
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+
+
+
+
+
+
+                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+
+
+
+
+
+
+
+                </svg>
+
+
+
+
+
+
+
+                Explore Data
+
+
+
+
+
+
+
+            </a>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div class="hero-stats">
+
+
+
+
+
+
+
+            <div class="stat in-view" data-animate="">
+
+
+
+
+
+
+
+                <span class="stat-value">6</span>
+
+
+
+
+
+
+
+                <span class="stat-label">Districts Tracked</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="stat in-view" data-animate="">
+
+
+
+
+
+
+
+                <span class="stat-value">5</span>
+
+
+
+
+
+
+
+                <span class="stat-label">Active Interests</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="stat in-view" data-animate="">
+
+
+
+
+
+
+
+                <span class="stat-value">9</span>
+
+
+
+
+
+
+
+                <span class="stat-label">Articles Published</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="stat in-view" data-animate="">
+
+
+
+
+
+
+
+                <span class="stat-value">16</span>
+
+
+
+
+
+
+
+                <span class="stat-label">Evidence Items</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+    <div class="hero-scroll-indicator">
+
+
+
+
+
+
+
+        <span>Scroll to explore</span>
+
+
+
+
+
+
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+
+
+
+
+
+
+            <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+
+
+
+
+
+
+
+        </svg>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="section" id="featured">
+
+
+
+
+
+
+
+    <div class="container">
+
+
+
+
+
+
+
+        <div class="section-header" data-animate="">
+
+
+
+
+
+
+
+            <span class="section-tag">Latest Articles</span>
+
+
+
+
+
+
+
+            <h2 class="section-title">Research, Analysis &amp; Advocacy</h2>
+
+
+
+
+
+
+
+            <p class="section-subtitle">
+
+
+
+
+
+
+
+                Data-driven reporting on special education, public records, and systemic accountability across Massachusetts.
+
+
+
+
+
+
+
+            </p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+            <div class="articles-grid" data-animate="">
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Guide</span>
+
+
+
+
+
+
+
+                                <span class="article-date">Jul 1, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/how-public-records-drive-accountability">How Public Records Requests Drive School District Accountability</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                A step-by-step guide to using Massachusetts public records law to obtain critical information about special education practices, professional development spending, and compliance records.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">6 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/how-public-records-drive-accountability" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Data Analysis</span>
+
+
+
+
+
+
+
+                                <span class="article-date">Jun 15, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/understanding-restraint-seclusion-data">Understanding Restraint and Seclusion Data in Massachusetts</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                An analysis of 9 years of DESE restraint and seclusion data reveals troubling trends: rising rates, suppression gaps, and what families need to know to protect their children.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">5 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/understanding-restraint-seclusion-data" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Methodology</span>
+
+
+
+
+
+
+
+                                <span class="article-date">Jun 10, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/spr-appeals-escalation-guide">SPR Appeals: When and How to Escalate a Public Records Denial</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                What happens when a school district stonewalls your records request? A practical guide to appealing to the Massachusetts Supervisor of Public Records.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">4 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/spr-appeals-escalation-guide" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Case Update</span>
+
+
+
+
+
+
+
+                                <span class="article-date">May 20, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/inside-attleboro-pd-records-investigation">Inside the Attleboro Public Schools PD Records Investigation</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                A detailed look at the records request, appeals, data analysis, and compliance findings from our investigation into professional development spending in Attleboro Public Schools.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">5 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/inside-attleboro-pd-records-investigation" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Methodology</span>
+
+
+
+
+
+
+
+                                <span class="article-date">May 5, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/building-an-evidence-locker">Building an Evidence Locker: How to Organize Advocacy Documentation</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                Systematic documentation is the foundation of effective advocacy. Here's how to organize emails, records, timelines, and correspondence into an evidence locker that wins cases.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">5 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/building-an-evidence-locker" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+                    <article class="article-card">
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                        <div class="article-card-body">
+
+
+
+
+
+
+
+                            <div class="article-card-meta">
+
+
+
+
+
+
+
+                                <span class="article-category">Policy</span>
+
+
+
+
+
+
+
+                                <span class="article-date">Apr 22, 2026</span>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <h3 class="article-card-title">
+
+
+
+
+
+
+
+                                <a href="/articles/dese-prs-complaint-system-explained">DESE Complaint Filing: The Problem Resolution System Explained</a>
+
+
+
+
+
+
+
+                            </h3>
+
+
+
+
+
+
+
+                            <p class="article-card-excerpt">
+
+
+
+
+
+
+
+                                How to file a formal complaint with the Massachusetts DESE Problem Resolution System, what to expect, and how PRS-15514 demonstrates the process.
+
+
+
+
+
+
+                            </p>
+
+
+
+
+
+
+
+                            <div class="article-card-footer">
+
+
+
+
+
+
+
+                                <span class="article-read-time">4 min read</span>
+
+
+
+
+
+
+
+                                <a href="/articles/dese-prs-complaint-system-explained" class="resource-link">Read Article</a>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                        </div>
+
+
+
+
+
+
+
+                    </article>
+
+
+
+
+
+
+
+                
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <div style="text-align:center;margin-top:2rem;" data-animate="">
+
+
+
+
+
+
+
+            <a href="/articles/" class="btn btn-secondary">View All Articles</a>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="section section-dark" id="quick-links">
+
+
+
+
+
+
+
+    <div class="container">
+
+
+
+
+
+
+
+        <div class="section-header" data-animate="">
+
+
+
+
+
+
+
+            <span class="section-tag">Explore</span>
+
+
+
+
+
+
+
+            <h2 class="section-title">What We Track</h2>
+
+
+
+
+
+
+
+            <p class="section-subtitle">
+
+
+
+
+
+
+
+                Every investigation, public records request, state determination, and systemic pattern — organized and accessible.
+
+
+
+
+
+
+
+            </p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div class="resources-grid" data-animate="">
+
+
+
+
+
+
+
+            <article class="resource-card">
+
+
+
+
+
+
+
+                <h3 class="resource-title">Case Directory</h3>
+
+
+
+
+
+
+
+                <p class="resource-excerpt">Active investigations, public records requests, appeals, and state determinations with full timelines and documents.</p>
+
+
+
+
+
+
+
+                <a href="/cases/" class="resource-link">View Cases</a>
+
+
+
+
+
+
+
+            </article>
+
+
+
+
+
+
+
+            <article class="resource-card">
+
+
+
+
+
+
+
+                <h3 class="resource-title">Data Browser</h3>
+
+
+
+
+
+
+
+                <p class="resource-excerpt">Interactive exploration of DESE restraint and seclusion data, district analytics, and statewide patterns.</p>
+
+
+
+
+
+
+
+                <a href="/data/" class="resource-link">Explore Data</a>
+
+
+
+
+
+
+
+            </article>
+
+
+
+
+
+
+
+            <article class="resource-card">
+
+
+
+
+
+
+
+                <h3 class="resource-title">District Profiles</h3>
+
+
+
+
+
+
+
+                <p class="resource-excerpt">Per-district pages aggregating cases, data summaries, and advocacy activity across Massachusetts.</p>
+
+
+
+
+
+
+
+                <a href="/districts/" class="resource-link">View Districts</a>
+
+
+
+
+
+
+
+            </article>
+
+
+
+
+
+
+
+            <article class="resource-card">
+
+
+
+
+
+
+
+                <h3 class="resource-title">Appearances &amp; Media</h3>
+
+
+
+
+
+
+
+                <p class="resource-excerpt">Public comments, school committee testimony, press coverage, and advocacy media appearances.</p>
+
+
+
+
+
+
+
+                <a href="/appearances/" class="resource-link">View Appearances</a>
+
+
+
+
+
+
+
+            </article>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Tracked Districts Coverage -->
+
+
+
+
+
+
+
+<section class="section" id="district-coverage">
+
+
+
+
+
+
+
+    <div class="container">
+
+
+
+
+
+
+
+        <div class="section-header" data-animate="">
+
+
+
+
+
+
+
+            <span class="section-tag">Tracked Districts</span>
+
+
+
+
+
+
+
+            <h2 class="section-title">District Coverage</h2>
+
+
+
+
+
+
+
+            <p class="section-subtitle">
+
+
+
+
+
+
+
+                Each district profiled with case activity, restraint data, and demographic context. Click through for detailed analytics.
+
+
+
+
+
+
+
+            </p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div class="resources-grid" data-animate="">
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/fallriver/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Fall River Public Schools</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Fall River, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">3 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">3 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/attleboro/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Attleboro Public Schools</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Attleboro, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">2 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">2 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/dese/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Massachusetts Department of Elementary and Secondary Education</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Malden, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">0 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">0 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/norton/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Norton Public Schools</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Norton, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">0 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">0 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/bridgewat/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Bridgewater-Raynham Regional School District</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Bridgewater, MA / Raynham, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">0 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">0 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <a href="/districts/whitmanh/" class="resource-card" style="text-decoration:none;border-left:3px solid var(--accent);">
+
+
+
+
+
+
+
+                    <h3 class="resource-title">Whitman-Hanson Regional School District</h3>
+
+
+
+
+
+
+
+                    <p class="resource-excerpt" style="font-size:0.85rem;color:var(--text-muted);">
+
+
+
+
+
+
+
+                        0 schools
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                         | Whitman, MA / Hanson, MA
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;">
+
+
+
+
+
+
+
+                        <span style="color:var(--accent-glow);">0 active interests</span>
+
+
+
+
+
+
+
+                        <span style="color:var(--text-muted);">0 total cases</span>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                </a>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Data at a Glance: Restraint Trends Chart -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="section section-dark" id="data-glance">
+
+
+
+
+
+
+
+    <div class="container">
+
+
+
+
+
+
+
+        <div class="section-header" data-animate="">
+
+
+
+
+
+
+
+            <span class="section-tag">Data at a Glance</span>
+
+
+
+
+
+
+
+            <h2 class="section-title">Statewide Restraint Trends</h2>
+
+
+
+
+
+
+
+            <p class="section-subtitle">
+
+
+
+
+
+
+
+                Live-computed from over 7,887 school-level records across 9 years. See how restraint rates have changed across Massachusetts.
+
+
+
+
+
+
+
+            </p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div style="max-width:900px;margin:0 auto;" data-animate="">
+
+
+
+
+
+
+
+            <div style="background:var(--bg-card, var(--bg-elevated));border-radius:16px;padding:1.5rem;border:1px solid var(--border);">
+
+
+
+
+
+
+
+                <div style="height:380px;">
+
+
+
+
+
+
+
+                    <canvas id="homepageRestraintChart" width="850" height="380" style="display: block; box-sizing: border-box; height: 380px; width: 850px;"></canvas>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:0.75rem;">
+
+
+
+
+
+
+
+                    Bars show total physical restraints per school year. Line shows injuries during restraint incidents. 
+
+
+
+
+
+
+
+                    <a href="/data/?tab=restraint" style="color:var(--accent-glow);">Explore the full dataset →</a>
+
+
+
+
+
+
+
+                </p>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="section" id="updates-ticker">
+
+
+
+
+
+
+
+    <div class="container">
+
+
+
+
+
+
+
+        <div class="section-header" data-animate="">
+
+
+
+
+
+
+
+            <span class="section-tag">Recent Activity</span>
+
+
+
+
+
+
+
+            <h2 class="section-title">Latest Updates</h2>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div class="updates-list" data-animate="">
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <div class="update-item">
+
+
+
+
+
+
+
+                    <div class="update-item-head">
+
+
+
+
+
+
+
+                        <span class="update-date">Jul 10, 2026</span>
+
+
+
+
+
+
+
+                        <span class="status-badge status-closed">High</span>
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <h4 class="update-title">DESE Restraint Data Pipeline Activated</h4>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                        <p class="update-body">The statewide restraint and seclusion data pipeline has been activated, pulling 9 years of data from the DESE profiles website covering 8,500+ school-level records.</p>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <div class="update-item">
+
+
+
+
+
+
+
+                    <div class="update-item-head">
+
+
+
+
+
+
+
+                        <span class="update-date">Mar 19, 2026</span>
+
+
+
+
+
+
+
+                        <span class="status-badge status-pending">Medium</span>
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                            <a href="/cases/SPR26-0842" class="update-case-link">SPR26-0842</a>
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <h4 class="update-title">SPR26-0842: District Response Package Received</h4>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                        <p class="update-body">Records Access Officer sent district response letter confirming narrowed-scope response package with PD database export.</p>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <div class="update-item">
+
+
+
+
+
+
+
+                    <div class="update-item-head">
+
+
+
+
+
+
+
+                        <span class="update-date">Mar 19, 2026</span>
+
+
+
+
+
+
+
+                        <span class="status-badge status-closed">High</span>
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                            <a href="/cases/PRS-15514" class="update-case-link">PRS-15514</a>
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <h4 class="update-title">PRS-15514: DESE Issues Local Response Request</h4>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                        <p class="update-body">DESE PRS notified parties and set April 7, 2026 deadlines for local response and supplemental submissions.</p>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <div class="update-item">
+
+
+
+
+
+
+
+                    <div class="update-item-head">
+
+
+
+
+
+
+
+                        <span class="update-date">Jan 31, 2026</span>
+
+
+
+
+
+
+
+                        <span class="status-badge status-pending">Medium</span>
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                            <a href="/cases/ATTLEBORO-PRR-002" class="update-case-link">ATTLEBORO-PRR-002</a>
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <h4 class="update-title">ATTLEBORO-PRR-002: Broad Records Request Filed</h4>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                        <p class="update-body">Comprehensive public records request filed covering meeting recordings, transcripts, executive session portions, and FY2022-present financial records.</p>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+                <div class="update-item">
+
+
+
+
+
+
+
+                    <div class="update-item-head">
+
+
+
+
+
+
+
+                        <span class="update-date">Mar 5, 2026</span>
+
+
+
+
+
+
+
+                        <span class="status-badge status-open">Low</span>
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                            <a href="/cases/FALLRIVER-PRR-001" class="update-case-link">FALLRIVER-PRR-001</a>
+
+
+
+
+
+
+
+                        
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <h4 class="update-title">FALLRIVER-PRR-001: Hiring Records Request Submitted</h4>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                        <p class="update-body">Public records request for School Adjustment Counselor hiring documentation at Silvia Elementary, including posting, interviews, and waiver records.</p>
+
+
+
+
+
+
+
+                    
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <div style="text-align:center;margin-top:1.5rem;" data-animate="">
+
+
+
+
+
+
+
+            <a href="/cases/" class="btn btn-ghost">View All Cases</a>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="section section-accent" id="cta-bottom">
+
+
+
+
+
+
+
+    <div class="container" data-animate="">
+
+
+
+
+
+
+
+        <div class="cta-banner">
+
+
+
+
+
+
+
+            <h2 class="section-title">Have Information to Share?</h2>
+
+
+
+
+
+
+
+            <p class="section-subtitle" style="max-width:100%;">
+
+
+
+
+
+
+
+                If you have tips, documents, or data about special education practices, public records concerns, 
+
+
+
+
+
+
+
+                or systemic issues in Massachusetts school districts, we want to hear from you.
+
+
+
+
+
+
+
+            </p>
+
+
+
+
+
+
+
+            <div class="hero-cta" style="margin-top:1rem;">
+
+
+
+
+
+
+
+                <a href="/submit/" class="btn btn-primary">Submit a Tip</a>
+
+
+
+
+
+
+
+                <a href="/submit/#help" class="btn btn-secondary">Request Help</a>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <img src="https://www.parentdataforce.com/assets/images/logo.png?v=1783864479" alt="Parent Data Force Logo" class="footer-logo-img">
+                        <span class="footer-logo-text">PARENT DATA FORCE</span>
+                    </div>
+                    <p class="footer-tagline">MAKING DATA MAKE SENSE</p>
+                    <p class="footer-description">
+                        Independent special education and public accountability advocacy. 
+                        Tracking complaints, records, outcomes, and systemic patterns across Massachusetts districts.
+                    </p>
+                </div>
+
+                <div class="footer-nav">
+                    <h4 class="footer-nav-title">Content</h4>
+                    <ul class="footer-nav-list">
+                        <li><a href="/articles/">Articles</a></li>
+                        <li><a href="/cases/">Case Directory</a></li>
+                        <li><a href="/districts/">Districts</a></li>
+                        <li><a href="/data/">Data Browser</a></li>
+                        <li><a href="/appearances/">Appearances</a></li>
+                        <li><a href="/updates/">Updates</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-nav">
+                    <h4 class="footer-nav-title">Get Involved</h4>
+                    <ul class="footer-nav-list">
+                        <li><a href="/submit/">Submit a Tip</a></li>
+                        <li><a href="/submit/#help">Request Help</a></li>
+                        <li><a href="/submit/#upload">Upload Data</a></li>
+                        <li><a href="/about/">About Us</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-contact">
+                    <h4 class="footer-nav-title">Stay Updated</h4>
+                    <form class="subscribe-form" action="/api/subscribe.php" method="post" id="footerSubscribe">
+                        <input type="hidden" name="csrf_token" value="f64e22738f67c432ff8a11930c918655afbca2a39c71b543538291474411e904">                        <input type="email" name="email" class="form-input" placeholder="Your email address" required="" style="margin-bottom:0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Subscribe</button>
+                    </form>
+                    <div class="footer-social" style="margin-top:0.75rem;">
+                        <span style="color:var(--text-muted);font-size:0.8rem;">Updates on new articles, case filings, and data releases.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-disclaimer">
+                <div class="disclaimer-box">
+                    <p>
+                        Parent Data Force is an independent advocacy initiative. Information provided on this site is for 
+                        informational purposes only and does not constitute legal advice. Always consult with a qualified 
+                        attorney for legal matters involving special education or public records law.
+                    </p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="copyright">© 2026 Parent Data Force. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="/about/#privacy">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://www.parentdataforce.com/assets/js/main.js?v=1783865228"></script>
+    <script src="https://www.parentdataforce.com/assets/js/charts.js?v=1783946487"></script>
+    <script src="https://www.parentdataforce.com/assets/js/charts-compare.js?v=1784028481"></script>
+
+
+</body></html>

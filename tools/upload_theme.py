@@ -9,14 +9,16 @@ ftp_creds = creds["ftp"]
 HOST, USER, PASS = ftp_creds["host"], ftp_creds["user"], ftp_creds["password"]
 
 LOCAL = ".."
-# (local_file, remote_ftp_path, size_hint_bytes)
+# (local_file, remote_ftp_path)
 items = [
-    ("theme/twentytwentyfive/theme.json", "/public_html/wordpress/wp-content/themes/twentytwentyfive/theme.json"),
-    ("theme/twentytwentyfive/patterns/header.php", "/public_html/wordpress/wp-content/themes/twentytwentyfive/patterns/header.php"),
-    ("captures/live_logo.png", "/public_html/wordpress/wp-content/uploads/brand/logo.png"),
+    ("theme/twentytwentyfive/theme.json", "/public_html/news/wp-content/themes/twentytwentyfive/theme.json"),
+    ("theme/twentytwentyfive/patterns/header.php", "/public_html/news/wp-content/themes/twentytwentyfive/patterns/header.php"),
+    ("theme/twentytwentyfive/patterns/footer.php", "/public_html/news/wp-content/themes/twentytwentyfive/patterns/footer.php"),
+    ("theme/twentytwentyfive/parts/footer.html", "/public_html/news/wp-content/themes/twentytwentyfive/parts/footer.html"),
+    ("captures/live_logo.png", "/public_html/news/wp-content/uploads/brand/logo.png"),
 ]
 ftp = ftplib.FTP(HOST); ftp.login(USER, PASS)
-for _d in ["/public_html/wordpress/wp-content/uploads/brand", "/public_html/wordpress/wp-content/uploads"]:
+for _d in ["/public_html/news/wp-content/uploads/brand", "/public_html/news/wp-content/uploads"]:
     try: ftp.mkd(_d)
     except Exception: pass
 for local, remote in items:

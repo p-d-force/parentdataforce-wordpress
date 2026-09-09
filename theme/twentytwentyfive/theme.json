@@ -51,7 +51,7 @@
 			]
 		},
 		"layout": {
-			"contentSize": "645px",
+			"contentSize": "750px",
 			"wideSize": "1340px"
 		},
 		"spacing": {
@@ -191,7 +191,7 @@
 			"text": "#f5f5f5"
 		},
 		"spacing": {
-			"blockGap": "1.2rem",
+			"blockGap": "1.5rem",
 			"padding": {
 				"left": "var:preset|spacing|50",
 				"right": "var:preset|spacing|50"
@@ -201,53 +201,30 @@
 			"fontFamily": "var:preset|font-family|inter",
 			"fontSize": "var:preset|font-size|large",
 			"fontWeight": "400",
-			"lineHeight": "1.5"
+			"lineHeight": "1.6"
 		},
 		"blocks": {
-			"core/avatar": {
-				"border": {
-					"radius": "100px"
-				}
-			},
-			"core/button": {
-				"variations": {
-					"outline": {
-						"border": {
-							"color": "currentColor",
-							"width": "1px"
-						},
-						"css": ".wp-block-button__link:not(.has-background):hover {background-color:color-mix(in srgb, var(--wp--preset--color--contrast) 5%, transparent);}",
-						"spacing": {
-							"padding": {
-								"bottom": "calc(1rem - 1px)",
-								"left": "calc(2.25rem - 1px)",
-								"right": "calc(2.25rem - 1px)",
-								"top": "calc(1rem - 1px)"
-							}
-						}
-					}
-				}
-			},
-			"core/columns": {
-				"spacing": {
-					"blockGap": "var:preset|spacing|50"
-				}
-			},
-			"core/buttons": {
-				"spacing": {
-					"blockGap": "16px"
-				}
-			},
 			"core/code": {
-				"typography": {
-					"fontFamily": "var:preset|font-family|jetbrains-mono",
-					"fontSize": "var:preset|font-size|medium",
-					"fontWeight": "400"
-				},
 				"color": {
 					"background": "#161616",
 					"text": "#f5f5f5"
 				},
+				"typography": {
+					"fontFamily": "var:preset|font-family|jetbrains-mono",
+					"fontSize": "var:preset|font-size|medium",
+					"fontWeight": "400",
+					"lineHeight": "1.6"
+				},
+				"spacing": {
+					"padding": {
+						"bottom": "1.5rem",
+						"left": "1.5rem",
+						"right": "1.5rem",
+						"top": "1.5rem"
+					}
+				}
+			},
+			"core/comments": {
 				"spacing": {
 					"padding": {
 						"right": "var:preset|spacing|40",
@@ -671,8 +648,8 @@
 			},
 			"heading": {
 				"typography": {
-					"fontWeight": "400",
-					"lineHeight": "1.125",
+					"fontWeight": "700",
+					"lineHeight": "1.3",
 					"letterSpacing": "-0.1px"
 				}
 			},

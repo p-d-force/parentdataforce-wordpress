@@ -1,0 +1,13 @@
+{
+    "speculative_config": {
+        "draft_models": [
+            "meta-llama/Llama-3.1-8B-Instruct"
+        ],
+        "draft_heads": [
+            "eagle3"
+        ],
+        "max_speculative_samples": 12,
+        "draft_check_interval": 50
+    },
+    "target_model": "gptoss20b"
+}

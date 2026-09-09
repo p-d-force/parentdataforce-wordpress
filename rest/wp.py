@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WordPress REST API client for parentdataforce.com /wordpress/.
+WordPress REST API client for parentdataforce.com /news/.
 
 Auth: HTTP Basic Auth using the Application Password from credentials.json
 (must sit next to this script). No third-party dependencies.

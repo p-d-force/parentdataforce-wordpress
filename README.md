@@ -1,6 +1,6 @@
 # Parent Data Force WordPress Site
 
-This repository contains the source code and deployment tools for the Parent Data Force WordPress site at https://www.parentdataforce.com/wordpress/.
+This repository contains the source code and deployment tools for the Parent Data Force WordPress site at https://www.parentdataforce.com/news/.
 
 ## Structure
 

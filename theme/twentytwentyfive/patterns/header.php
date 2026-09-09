@@ -21,14 +21,24 @@
 			<!-- wp:group {"layout":{"type":"flex","flexWrap":"nowrap","alignItems":"center","blockGap":"var:preset|spacing|12"}} -->
 			<div class="wp-block-group">
 				<!-- wp:image {"width":80,"aspectRatio":"1","scale":"contain","linkDestination":"none","style":{"border":{"radius":"8px"}}} -->
-				<figure class="wp-block-image is-resized"><img src="https://www.parentdataforce.com/wordpress/wp-content/uploads/brand/logo.png" alt="Parent Data Force Logo" width="80" height="80" style="aspect-ratio:1;object-fit:contain;border-radius:8px"/></figure>
+				<figure class="wp-block-image is-resized"><img src="https://www.parentdataforce.com/news/wp-content/uploads/brand/logo.png" alt="Parent Data Force Logo" width="80" height="80" style="aspect-ratio:1;object-fit:contain;border-radius:8px"/></figure>
 				<!-- /wp:image -->
 				<!-- wp:site-title {"level":0} /-->
 			</div>
 			<!-- /wp:group -->
 			<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|10"}},"layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"right"}} -->
 			<div class="wp-block-group">
-				<!-- wp:navigation {"overlayBackgroundColor":"base","overlayTextColor":"contrast","layout":{"type":"flex","justifyContent":"right","flexWrap":"wrap"}} /-->
+	<!-- wp:navigation {"overlayBackgroundColor":"base","overlayTextColor":"contrast","layout":{"type":"flex","justifyContent":"right","flexWrap":"wrap"}} -->
+			<!-- wp:navigation-link {"label":"Data","url":"https://www.parentdataforce.com/data/"} /-->
+			<!-- wp:navigation-link {"label":"Districts","url":"https://www.parentdataforce.com/districts/"} /-->
+			<!-- wp:navigation-link {"label":"Current Focus","url":"https://www.parentdataforce.com/cases/"} /-->
+			<!-- wp:navigation-link {"label":"Articles","url":"https://www.parentdataforce.com/articles/"} /-->
+			<!-- wp:navigation-link {"label":"Appearances","url":"https://www.parentdataforce.com/appearances/"} /-->
+			<!-- wp:navigation-link {"label":"Resources","url":"https://www.parentdataforce.com/resources/"} /-->
+			<!-- wp:navigation-link {"label":"About","url":"https://www.parentdataforce.com/about/"} /-->
+			<!-- wp:navigation-link {"label":"Submit Data","url":"https://www.parentdataforce.com/submit/"} /-->
+			<!-- wp:navigation-link {"label":"\u2764 Donate","url":"https://www.parentdataforce.com/donate/"} /-->
+			<!-- /wp:navigation -->
 			</div>
 			<!-- /wp:group -->
 		</div>

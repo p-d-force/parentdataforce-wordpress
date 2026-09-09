@@ -1,0 +1,131 @@
+{
+  "title": "Home | Parent Data Force",
+  "description": "Parent Data Force — Data-driven advocacy for families. Tracking complaints, records, outcomes, and systemic patterns across Massachusetts districts.",
+  "navigation": [
+    {
+      "text": "Data",
+      "href": "/data/"
+    },
+    {
+      "text": "Districts",
+      "href": "/districts/"
+    },
+    {
+      "text": "Current Focus",
+      "href": "/cases/"
+    },
+    {
+      "text": "Articles",
+      "href": "/articles/"
+    },
+    {
+      "text": "Appearances",
+      "href": "/appearances/"
+    },
+    {
+      "text": "Resources",
+      "href": "/resources/"
+    },
+    {
+      "text": "About",
+      "href": "/about/"
+    },
+    {
+      "text": "",
+      "href": "/search.php"
+    },
+    {
+      "text": "",
+      "href": "https://www.facebook.com/ParentDataForce"
+    },
+    {
+      "text": "Submit Data",
+      "href": "/submit/"
+    },
+    {
+      "text": "❤ Donate",
+      "href": "/donate/"
+    }
+  ],
+  "articles": [
+    {
+      "title": "How Public Records Requests Drive School District Accountability",
+      "link": "/articles/how-public-records-drive-accountability",
+      "category": "Guide",
+      "date": "Jul 1, 2026",
+      "excerpt": "A step-by-step guide to using Massachusetts public records law to obtain critical information about special education practices, professional development spending, and compliance records.",
+      "read_time": "6 min read"
+    },
+    {
+      "title": "Understanding Restraint and Seclusion Data in Massachusetts",
+      "link": "/articles/understanding-restraint-seclusion-data",
+      "category": "Data Analysis",
+      "date": "Jun 15, 2026",
+      "excerpt": "An analysis of 9 years of DESE restraint and seclusion data reveals troubling trends: rising rates, suppression gaps, and what families need to know to protect their children.",
+      "read_time": "5 min read"
+    },
+    {
+      "title": "SPR Appeals: When and How to Escalate a Public Records Denial",
+      "link": "/articles/spr-appeals-escalation-guide",
+      "category": "Methodology",
+      "date": "Jun 10, 2026",
+      "excerpt": "What happens when a school district stonewalls your records request? A practical guide to appealing to the Massachusetts Supervisor of Public Records.",
+      "read_time": "4 min read"
+    },
+    {
+      "title": "Inside the Attleboro Public Schools PD Records Investigation",
+      "link": "/articles/inside-attleboro-pd-records-investigation",
+      "category": "Case Update",
+      "date": "May 20, 2026",
+      "excerpt": "A detailed look at the records request, appeals, data analysis, and compliance findings from our investigation into professional development spending in Attleboro Public Schools.",
+      "read_time": "5 min read"
+    },
+    {
+      "title": "Building an Evidence Locker: How to Organize Advocacy Documentation",
+      "link": "/articles/building-an-evidence-locker",
+      "category": "Methodology",
+      "date": "May 5, 2026",
+      "excerpt": "Systematic documentation is the foundation of effective advocacy. Here's how to organize emails, records, timelines, and correspondence into an evidence locker that wins cases.",
+      "read_time": "5 min read"
+    },
+    {
+      "title": "DESE Complaint Filing: The Problem Resolution System Explained",
+      "link": "/articles/dese-prs-complaint-system-explained",
+      "category": "Policy",
+      "date": "Apr 22, 2026",
+      "excerpt": "How to file a formal complaint with the Massachusetts DESE Problem Resolution System, what to expect, and how PRS-15514 demonstrates the process.",
+      "read_time": "4 min read"
+    }
+  ],
+  "districts": [
+    {
+      "name": "View Districts",
+      "url": "/districts/"
+    },
+    {
+      "name": "Fall River Public Schools",
+      "url": "/districts/fallriver/"
+    },
+    {
+      "name": "Attleboro Public Schools",
+      "url": "/districts/attleboro/"
+    },
+    {
+      "name": "Bridgewater-Raynham Regional School District",
+      "url": "/districts/bridgewat/"
+    },
+    {
+      "name": "Whitman-Hanson Regional School District",
+      "url": "/districts/whitmanh/"
+    },
+    {
+      "name": "Massachusetts Department of Elementary and Secondary Education",
+      "url": "/districts/dese/"
+    },
+    {
+      "name": "Norton Public Schools",
+      "url": "/districts/norton/"
+    }
+  ],
+  "pages": []
+}

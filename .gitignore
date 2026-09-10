@@ -17,5 +17,5 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
-# Pristine upstream theme copy (reference only)
-theme/twentytwentyfive/twentytwentyfive/
+# Pristine upstream theme copy (reference only; regenerable)
+theme/pdforce/twentytwentyfive/

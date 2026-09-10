@@ -8,15 +8,15 @@ with open("../rest/credentials.json") as f:
 ftp_creds = creds["ftp"]
 HOST, USER, PASS = ftp_creds["host"], ftp_creds["user"], ftp_creds["password"]
 
-SRC = "/public_html/wordpress/wp-content/themes/twentytwentyfive"
-DEST = "../theme/twentytwentyfive"
+SRC = "/public_html/news/wp-content/themes/pdforce"
+DEST = "../theme/pdforce"
 
 ftp = ftplib.FTP(HOST); ftp.login(USER, PASS)
 count = 0; errors = 0
 
 def fetch(dirpath):
     global count, errors
-    rel = dirpath.replace("/public_html/wordpress/wp-content/themes/", "")
+    rel = dirpath.replace("/public_html/news/wp-content/themes/", "")
     local = os.path.join(DEST, rel)
     os.makedirs(local, exist_ok=True)
     entries = list(ftp.mlsd(dirpath))

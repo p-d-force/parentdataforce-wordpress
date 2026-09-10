@@ -11,10 +11,10 @@ HOST, USER, PASS = ftp_creds["host"], ftp_creds["user"], ftp_creds["password"]
 LOCAL = ".."
 # (local_file, remote_ftp_path)
 items = [
-    ("theme/twentytwentyfive/theme.json", "/public_html/news/wp-content/themes/twentytwentyfive/theme.json"),
-    ("theme/twentytwentyfive/patterns/header.php", "/public_html/news/wp-content/themes/twentytwentyfive/patterns/header.php"),
-    ("theme/twentytwentyfive/patterns/footer.php", "/public_html/news/wp-content/themes/twentytwentyfive/patterns/footer.php"),
-    ("theme/twentytwentyfive/parts/footer.html", "/public_html/news/wp-content/themes/twentytwentyfive/parts/footer.html"),
+    ("theme/pdforce/theme.json", "/public_html/news/wp-content/themes/pdforce/theme.json"),
+    ("theme/pdforce/patterns/header.php", "/public_html/news/wp-content/themes/pdforce/patterns/header.php"),
+    ("theme/pdforce/patterns/footer.php", "/public_html/news/wp-content/themes/pdforce/patterns/footer.php"),
+    ("theme/pdforce/parts/footer.html", "/public_html/news/wp-content/themes/pdforce/parts/footer.html"),
     ("captures/live_logo.png", "/public_html/news/wp-content/uploads/brand/logo.png"),
 ]
 ftp = ftplib.FTP(HOST); ftp.login(USER, PASS)

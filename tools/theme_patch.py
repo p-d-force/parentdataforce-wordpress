@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch twentytwentyfive theme.json to match the live Parent Data Force site."""
+"""Patch pdforce theme.json to match the live Parent Data Force site."""
 import json
 
 with open("theme.json", encoding="utf-8") as f:

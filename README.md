@@ -4,7 +4,7 @@ This repository contains the source code and deployment tools for the Parent Dat
 
 ## Structure
 
-- `theme/` - The live WordPress theme (Twenty Twenty-Five customized)
+- `theme/` - The live WordPress theme (Parent Data Force customized)
 - `tools/` - Scripts for mirroring, fetching, and deploying the site
 - `rest/` - WordPress REST API client and utilities
 - `docs/` - Documentation and planning
@@ -12,7 +12,7 @@ This repository contains the source code and deployment tools for the Parent Dat
 
 ## Deployment
 
-1. Theme customizations are made in `theme/twentytwentyfive/`
+1. Theme customizations are made in `theme/pdforce/`
 2. Deploy changes with `tools/upload_theme.py`
 3. Mirror the live site with `tools/wp_mirror.py`
 

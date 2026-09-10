@@ -3,8 +3,8 @@
 
 Usage: python wp_mirror.py [ftp_src] [dest]
 Defaults:
-  ftp_src = /public_html/wordpress
-  dest    = C:/Users/paren/Development/wordpress-copy
+  ftp_src = /public_html/news
+  dest    = ../wordpress-copy
 """
 import ftplib
 import os
@@ -17,7 +17,7 @@ with open("../rest/credentials.json") as f:
 ftp_creds = creds["ftp"]
 HOST, USER, PASS = ftp_creds["host"], ftp_creds["user"], ftp_creds["password"]
 
-SRC = "/public_html/wordpress"
+SRC = "/public_html/news"
 DEST = "../wordpress-copy"
 
 if len(sys.argv) > 1:

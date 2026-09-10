@@ -62,8 +62,8 @@ def verify_site_changes():
         
         # Check for theme characteristics
         print("\nChecking theme characteristics:")
-        if "twentytwentyfive" in content.lower():
-            print("✓ Twenty Twenty-Five theme detected")
+        if "pdforce" in content.lower():
+            print("✓ Parent Data Force theme detected")
         else:
             print("? Theme identification not found in content")
         

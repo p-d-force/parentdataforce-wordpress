@@ -7,7 +7,7 @@ This project successfully transformed the Parent Data Force static website into 
 The project is organized in a clean, structured repository at `C:/Users/paren/Development/parentdataforce-wordpress/`:
 
 - `theme/` - Custom WordPress themes
-  - `twentytwentyfive/` - Enhanced base theme with readability improvements
+  - `pdforce/` - Enhanced base theme with readability improvements
   - `custom-parentdataforce/` - Fully custom theme with organization branding
 - `tools/` - Automation and deployment scripts
 - `rest/` - WordPress REST API client and utilities

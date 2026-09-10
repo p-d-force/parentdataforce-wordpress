@@ -104,7 +104,7 @@ The exception is legacy `docs/migration/*.py`, which does import `requests` and 
 
 ```jsonc
 {
-  "username": "...",              // REST: WP user login
+  "username": "pdforce",          // REST + wp-login: the WP LOGIN name (user id 1)
   "application_password": "...",  // REST: HTTP Basic password
   "login_password": "...",        // STALE — wp-login.php rejects it
   "rest_url": "https://www.parentdataforce.com/news/wp-json/",
@@ -120,6 +120,8 @@ with open("../rest/credentials.json", encoding="utf-8") as f:
 ```
 
 `login_password` does **not** work for cookie auth, so wp-admin previews of drafts are unavailable. REST with `application_password` works. Never commit secrets; never print values.
+
+**Login name is `pdforce`, not `admin`.** `GET /wp/v2/users` returns `name: "admin"` but `slug: "pdforce"` — "admin" is only the display name and is not a registered login (a `wp-login.php` probe returns *"The username admin is not registered on this site"*). Use `pdforce` for both REST Basic auth and any cookie login. `docs/migration/wordpress_setup_guide.md` documents that the username was deliberately changed away from `admin`.
 
 ### Auth reuse, not duplication
 
@@ -338,7 +340,7 @@ Do not trust these without checking:
 - `PARENT_DATA_FORCE_WORDPRESS_PROJECT_SUMMARY.md` — a historical snapshot, now annotated with `[corrected]` markers where its claims were disproved against the live site. It originally claimed a `theme/custom-parentdataforce/` theme exists (it does not) and that custom post types `cases`/`districts`/`resources`/`appearances` are registered (`GET /wp/v2/types` returns core types only). Read the annotations, not the original text.
 - `README.md` — now the authoritative short orientation and points here. It previously named `tools/upload_theme.py` as the deploy path; `tools/deploy_theme.py` supersedes it (recursive upload + theme switch + permalink fix vs. a fixed 5-file list).
 - `tools/theme_patch.py` — **archived** to `../_archive/`. It read a bare `theme.json` from cwd (which no longer exists), and its branding output is already committed in `theme/pdforce/theme.json`. Verified: of 278 leaf values, 276 match exactly; the only deltas were `styles.typography.lineHeight` 1.6 → **1.5** (a regression) and dropping `core/code` `lineHeight`. Do not restore it.
-- `docs/migration/wp_config.py` — points at `http://localhost/wp-json/wp/v2`, has a placeholder password, and declares `CUSTOM_POST_TYPES` (`cases`, `districts`, `resources`, `appearances`) that do not exist on the live site.
+- `docs/migration/wp_config.py` — **legacy/superseded** (nothing current imports it; tooling uses `rest/credentials.json`). Still points at `http://localhost/wp-json/wp/v2`, has a placeholder password, and declares `CUSTOM_POST_TYPES` (`cases`, `districts`, `resources`, `appearances`) that do not exist on the live site. Its `WP_USERNAME` was `"admin"` (wrong — the login is `pdforce`); now corrected in-file with a note.
 - `docs/migration/parentdataforce-wordpress.agent` — references `tools/wp.py`, `tools/migrate_parentdataforce.py`, `tools/wp_config.py`; none exist at those paths.
 - `docs/migration/` generally — historical migration artifacts. `eagle3_spec_config.json`, `EAGLE3_SETUP.md`, `run_eagle3.py`, `autoresearch.py`, `sc_probe.py`, `sc_tool_test.py` are unrelated to WordPress (leftovers from other work; verified — none reference `wp-json`, `wp-content`, or the theme).
 - `captures/` — frozen HTML/CSS/PNG snapshots from the pre-`/news`, pre-rename era. They still contain `twentytwentyfive` and `/wordpress/` URLs. Reference only; never edit or treat as current.

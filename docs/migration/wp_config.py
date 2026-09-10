@@ -1,10 +1,13 @@
 # WordPress Configuration for Parent Data Force Migration
 
-# WordPress REST API Endpoint
+# NOTE: legacy/superseded. Current tooling reads rest/credentials.json instead.
+# The live REST URL is https://www.parentdataforce.com/news/wp-json/ (not localhost).
 WP_API_URL = "http://localhost/wp-json/wp/v2"
 
 # Authentication (Application Password)
-WP_USERNAME = "admin"
+# The WP login is "pdforce" (user id 1); "admin" is only its display name and is NOT
+# a registered login. Verified against wp-login.php. credentials.json already uses pdforce.
+WP_USERNAME = "pdforce"
 WP_APPLICATION_PASSWORD = "YOUR_APP_PASSWORD_HERE"
 
 # Site Information

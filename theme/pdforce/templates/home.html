@@ -1,9 +1,19 @@
 <!-- wp:template-part {"slug":"header"} /-->
 
-<!-- wp:group {"tagName":"main","style":{"spacing":{"margin":{"top":"var:preset|spacing|60"}}},"layout":{"type":"constrained"}} -->
-<main class="wp-block-group" style="margin-top:var(--wp--preset--spacing--60)">
-	<!-- wp:pattern {"slug":"pdforce/hidden-blog-heading"} /-->
-	<!-- wp:pattern {"slug":"pdforce/template-query-loop"} /-->
+<!-- wp:pattern {"slug":"pdforce/hero-fault"} /-->
+
+<!-- wp:pattern {"slug":"pdforce/record-stats"} /-->
+
+<!-- wp:group {"tagName":"main","style":{"spacing":{"margin":{"top":"0"}}},"layout":{"type":"constrained"}} -->
+<main class="wp-block-group" style="margin-top:0">
+	<!-- wp:group {"align":"wide","style":{"spacing":{"padding":{"top":"var:preset|spacing|60"}}},"layout":{"type":"default"}} -->
+	<div class="wp-block-group alignwide" style="padding-top:var(--wp--preset--spacing--60)">
+		<!-- wp:paragraph {"className":"pdf-kicker"} -->
+		<p class="pdf-kicker">Latest from the record</p>
+		<!-- /wp:paragraph -->
+	</div>
+	<!-- /wp:group -->
+	<!-- wp:pattern {"slug":"pdforce/docket"} /-->
 </main>
 <!-- /wp:group -->
 

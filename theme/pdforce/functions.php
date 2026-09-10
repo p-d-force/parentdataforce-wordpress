@@ -64,6 +64,47 @@ if ( ! function_exists( 'pdforce_enqueue_styles' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'pdforce_enqueue_styles' );
 
+if ( ! function_exists( 'pdforce_enqueue_design_assets' ) ) :
+	/**
+	 * Enqueues the fault-line design layer (CSS) and the animated ASCII engine
+	 * (JS). The engine loads only on views that render a `.pdf-ascii` canvas:
+	 * the posts index (home), archives, and the 404 template.
+	 *
+	 * @since Parent Data Force 1.6
+	 *
+	 * @return void
+	 */
+	function pdforce_enqueue_design_assets() {
+		$ver = wp_get_theme()->get( 'Version' );
+
+		wp_enqueue_style(
+			'pdforce-design',
+			get_theme_file_uri( 'assets/css/pdf-design.css' ),
+			array( 'pdforce-style' ),
+			$ver
+		);
+
+		if ( is_home() || is_front_page() || is_archive() || is_404() || is_search() ) {
+			// Crack path data must load before the engine consumes it.
+			wp_enqueue_script(
+				'pdforce-crack-path',
+				get_theme_file_uri( 'assets/js/bolt-path.js' ),
+				array(),
+				$ver,
+				true
+			);
+			wp_enqueue_script(
+				'pdforce-ascii',
+				get_theme_file_uri( 'assets/js/pdforce-ascii.js' ),
+				array( 'pdforce-crack-path' ),
+				$ver,
+				true
+			);
+		}
+	}
+endif;
+add_action( 'wp_enqueue_scripts', 'pdforce_enqueue_design_assets' );
+
 if ( ! function_exists( 'pdforce_block_styles' ) ) :
 	/**
 	 * Registers custom block styles.

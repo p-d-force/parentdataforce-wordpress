@@ -1,0 +1,15 @@
+{
+  "checkpoint": 4,
+  "label": "hero-logo-centric",
+  "note": "Hero features the actual logo disc; records spill from the crack; field toned down (less busy)",
+  "timestamp": "2026-09-10T01:31:30",
+  "files": [
+    "bolt.svg",
+    "logo-animated.svg",
+    "bolt-ascii.js",
+    "bolt-path.js",
+    "pdforce-ascii.js",
+    "design-mock.html",
+    "articles-mock.html"
+  ]
+}

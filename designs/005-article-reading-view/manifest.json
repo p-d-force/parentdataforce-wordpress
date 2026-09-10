@@ -1,0 +1,16 @@
+{
+  "checkpoint": 5,
+  "label": "article-reading-view",
+  "note": "Single-article long-form reading experience: drop cap, // section markers, monospace meta, sources",
+  "timestamp": "2026-09-10T01:44:20",
+  "files": [
+    "bolt.svg",
+    "logo-animated.svg",
+    "bolt-ascii.js",
+    "bolt-path.js",
+    "pdforce-ascii.js",
+    "design-mock.html",
+    "articles-mock.html",
+    "article-single-mock.html"
+  ]
+}

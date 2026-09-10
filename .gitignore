@@ -21,5 +21,8 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Throwaway render/test mocks (canonical snapshots live in designs/)
+scratch/
 # Pristine upstream theme copy (reference only; regenerable)
 theme/pdforce/twentytwentyfive/

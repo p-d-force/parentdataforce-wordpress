@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Data Force — News</title>
+<style>
+  :root{
+    --ink0:#0b0b0b; --ink1:#161616; --ink2:#1d1d1d; --line:#2a2a2a;
+    --mid:#a0a0a0; --paper:#f5f5f5; --signal:#ff5a1f; --signal-hi:#ffa366;
+    --mono:"JetBrains Mono",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--ink0);color:var(--paper);font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased}
+
+  /* ---- header ---- */
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;
+    padding:14px 32px;background:rgba(11,11,11,.82);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line)}
+  header img{width:34px;height:34px;border-radius:50%}
+  header .wordmark{font-family:var(--mono);font-size:13px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--paper)}
+  header nav{margin-left:auto;display:flex;gap:26px}
+  header nav a{color:var(--mid);text-decoration:none;font-size:14px;font-weight:500}
+  header nav a:hover{color:var(--paper)}
+  header nav a.active{color:var(--signal)}
+  header .cta{margin-left:18px;background:var(--signal);color:#160801;font-weight:700;
+    font-size:13px;padding:9px 18px;border-radius:999px;text-decoration:none}
+
+  /* ---- hero ---- */
+  .hero{position:relative;height:74vh;min-height:520px;overflow:hidden;border-bottom:1px solid var(--line)}
+  .hero canvas.pdf-ascii{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero .overlay{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:56px;pointer-events:none}
+  .hero .kicker{font-family:var(--mono);color:var(--signal);font-size:13px;
+    letter-spacing:.26em;text-transform:uppercase;margin-bottom:16px}
+  .hero h1{font-size:clamp(44px,7vw,92px);font-weight:800;letter-spacing:-.03em;line-height:.98}
+  .hero p{color:var(--mid);margin-top:18px;max-width:560px;font-size:19px;line-height:1.6}
+
+  /* ---- section ---- */
+  .section{max-width:1200px;margin:0 auto;padding:80px 32px}
+  .section .rule{font-family:var(--mono);color:var(--signal);font-size:13px;
+    letter-spacing:.2em;margin-bottom:8px;overflow:hidden;white-space:nowrap}
+  .section h2{font-size:40px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+  .section .sub{color:var(--mid);margin-bottom:48px}
+
+  /* ---- article cards ---- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line)}
+  .card{background:var(--ink0);padding:32px 28px;display:flex;flex-direction:column;gap:14px;
+    transition:background .2s}
+  .card:hover{background:var(--ink1)}
+  .card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--signal)}
+  .card h3{font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+  .card .meta{font-family:var(--mono);font-size:12px;color:var(--mid);margin-top:auto}
+  .card .read{font-family:var(--mono);font-size:12px;color:var(--signal);letter-spacing:.1em}
+  .card:hover .read{color:var(--signal-hi)}
+  @media(max-width:900px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <header>
+    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjU1LjMgNTcuMCA5MTUuMCA5MTUuMCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQYXJlbnQgRGF0YSBGb3JjZSDigJQgZmF1bHQgbGluZSI+CiAgPGRlZnM+CiAgICA8cGF0aCBpZD0iYm9sdCIgZD0iTSA1NjAuMCwwLjAgTCA1ODQuMCwyMC4wIEwgNTg1LjAsMjMuMCBMIDU4MC4wLDI5LjAgTCA1NzUuMCw0Ni4wIEwgNTY3LjAsNTIuMCBMIDU1OS4wLDY0LjAgTCA1NDQuMCw3Ni4wIEwgNTI2LjAsOTUuMCBMIDUyMi4wLDEwMi4wIEwgNTEyLjAsMTM1LjAgTCA0ODYuMCwxNjEuMCBMIDQ2Mi4wLDE5Mi4wIEwgNDEyLjAsMjE5LjAgTCAzNzkuMCwyNTAuMCBMIDM3Mi4wLDI2NC4wIEwgMzU5LjAsMzIxLjAgTCAzNTguMCwzMzIuMCBMIDMwNi4wLDQwMS4wIEwgMjkyLjAsNDEzLjAgTCAyNTQuMCw0MzMuMCBMIDIzMy4wLDQ0MC4wIEwgMjE1LjAsNDU0LjAgTCAyMDUuMCw0NjguMCBMIDE3OC4wLDUxOS4wIEwgMTcxLjAsNTI5LjAgTCAxNjQuMCw1NDYuMCBMIDE2Mi4wLDU2My4wIEwgMTI4LjAsNTk2LjAgTCA5Mi4wLDYyMC4wIEwgODIuMCw2MzAuMCBMIDcyLjAsNjQ1LjAgTCA2Mi4wLDY2Ny4wIEwgMzIuMCw2OTcuMCBMIDMxLjAsNzA4LjAgTCAyMC4wLDcxOC4wIEwgMTUuMCw3MzAuMCBMIDIuMCw3MjEuMCBMIDAuMCw3MTguMCBMIDExLjAsNjkzLjAgTCAxOC4wLDY4Ni4wIEwgMzcuMCw2NzcuMCBMIDQ3LjAsNjY4LjAgTCA1Ny4wLDY0NC4wIEwgODEuMCw2MDguMCBMIDExMC4wLDU5My4wIEwgMTM5LjAsNTY3LjAgTCAxNDUuMCw1NTYuMCBMIDE1MC4wLDUzNS4wIEwgMTc3LjAsNDg4LjAgTCAxOTkuMCw0NDMuMCBMIDIwNC4wLDQzNy4wIEwgMjQ0LjAsNDE0LjAgTCAyODIuMCwzOTUuMCBMIDI5MC4wLDM4OS4wIEwgMjk4LjAsMzc5LjAgTCAzMzUuMCwzMjcuMCBMIDM0NC4wLDI3OC4wIEwgMzU4LjAsMjM1LjAgTCAzNjUuMCwyMjcuMCBMIDM5NS4wLDIwMy4wIEwgNDE5LjAsMTkwLjAgTCA0NTMuMCwxNjguMCBMIDQ4NC4wLDEzNS4wIEwgNDk1LjAsMTE5LjAgTCA1MTAuMCw3NS4wIEwgNTM3LjAsNDEuMCBMIDUzOS4wLDM4LjAgTCA1NDEuMCwyNS4wIEwgNTUyLjAsMTQuMCBMIDU1OC4wLDEuMCBMIDU2MC4wLDAuMCBaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMzMsMTU1KSIvPgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJiZyIgY3g9IjM4JSIgY3k9IjMzJSIgcj0iODAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzJlMWMxMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjI4JSIgc3RvcC1jb2xvcj0iIzFhMGYwOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjYyJSIgc3RvcC1jb2xvcj0iIzEwMDkwNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9Ijg4JSIgc3RvcC1jb2xvcj0iIzA3MDQwMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwMzAyMDEiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InNwZWMiIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjUwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmQ5YmQiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iNDAlIiBzdG9wLWNvbG9yPSIjZmY5YTVjIiBzdG9wLW9wYWNpdHk9IjAuMTgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZmY5YTVjIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImxpbWIiIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjUwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwMDAiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9Ijc4JSIgc3RvcC1jb2xvcj0iIzAwMCIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iOTQlIiBzdG9wLWNvbG9yPSIjMDAwIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMDAwIiBzdG9wLW9wYWNpdHk9IjAuNyIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0id2FybWdsb3ciIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjUwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZjVhMWYiIHN0b3Atb3BhY2l0eT0iMC41NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjU1JSIgc3RvcC1jb2xvcj0iI2MzM2QwZCIgc3RvcC1vcGFjaXR5PSIwLjIyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAwMCIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJib2x0ZmlsbCIgeDE9IjAiIHkxPSIwIiB4Mj0iMC4yNSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmZiMDc4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iNDUlIiBzdG9wLWNvbG9yPSIjZmY2YTJiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2U2NDQwYSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2hpbmUiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjZmZkOWJkIiBzdG9wLW9wYWNpdHk9IjAuOSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxjbGlwUGF0aCBpZD0iYm9sdGNsaXAiPjx1c2UgaHJlZj0iI2JvbHQiLz48L2NsaXBQYXRoPgogICAgPGNsaXBQYXRoIGlkPSJkaXNjY2xpcCI+PGNpcmNsZSBjeD0iNTEyLjgiIGN5PSI1MTQuNSIgcj0iNDU3LjUiLz48L2NsaXBQYXRoPgogICAgPGZpbHRlciBpZD0iZ2xvdyIgeD0iLTYwJSIgeT0iLTYwJSIgd2lkdGg9IjIyMCUiIGhlaWdodD0iMjIwJSI+CiAgICAgIDxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjE2IiByZXN1bHQ9ImIiLz4KICAgICAgPGZlTWVyZ2U+PGZlTWVyZ2VOb2RlIGluPSJiIi8+PGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+PC9mZU1lcmdlPgogICAgPC9maWx0ZXI+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0Ymx1ciIgeD0iLTQwJSIgeT0iLTQwJSIgd2lkdGg9IjE4MCUiIGhlaWdodD0iMTgwJSI+CiAgICAgIDxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjMwIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxmaWx0ZXIgaWQ9ImdyYWluIj4KICAgICAgPGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOSIgbnVtT2N0YXZlcz0iMiIgcmVzdWx0PSJuIi8+CiAgICAgIDxmZUNvbG9yTWF0cml4IGluPSJuIiB0eXBlPSJtYXRyaXgiCiAgICAgICAgdmFsdWVzPSIwIDAgMCAwIDAuMTAgIDAgMCAwIDAgMC4wNyAgMCAwIDAgMCAwLjA1ICAwIDAgMCAwLjUgMCIvPgogICAgICA8ZmVDb21wb3NpdGUgb3BlcmF0b3I9ImluIiBpbjI9IlNvdXJjZUdyYXBoaWMiLz4KICAgIDwvZmlsdGVyPgogICAgPHN0eWxlPgogICAgICAuYm9sdC1jb3JlIHsgZmlsbDogdXJsKCNib2x0ZmlsbCk7IH0KICAgICAgLmJvbHQtZ2xvdyB7IGZpbGw6ICNmZjVhMWY7IGZpbHRlcjogdXJsKCNnbG93KTsgb3BhY2l0eTogLjU1OwogICAgICAgICAgICAgICAgICAgYW5pbWF0aW9uOiBnbG93UHVsc2UgMy4ycyBlYXNlLWluLW91dCBpbmZpbml0ZTsKICAgICAgICAgICAgICAgICAgIHRyYW5zZm9ybS1vcmlnaW46IDUxMi44cHggNTE0LjVweDsgfQogICAgICAud2FybSB7IGZpbHRlcjogdXJsKCNzb2Z0Ymx1cik7IGFuaW1hdGlvbjogd2FybVB1bHNlIDQuMnMgZWFzZS1pbi1vdXQgaW5maW5pdGU7CiAgICAgICAgICAgICAgdHJhbnNmb3JtLW9yaWdpbjogNTEyLjhweCA1MTQuNXB4OyB9CiAgICAgIC5zaGluZSB7IGZpbGw6IHVybCgjc2hpbmUpOyBtaXgtYmxlbmQtbW9kZTogc2NyZWVuOyBvcGFjaXR5OiAwOwogICAgICAgICAgICAgICBhbmltYXRpb246IHNoaW5lU3dlZXAgNC41cyBsaW5lYXIgaW5maW5pdGU7IH0KICAgICAgLmVtYmVyIHsgZmlsbDogI2ZmN2EzZDsgb3BhY2l0eTogMDsgYW5pbWF0aW9uOiBlbWJlclJpc2UgNnMgbGluZWFyIGluZmluaXRlOyB9CiAgICAgIEBrZXlmcmFtZXMgZ2xvd1B1bHNlIHsgMCUsMTAwJSB7IG9wYWNpdHk6LjQ1OyB0cmFuc2Zvcm06c2NhbGUoMSk7IH0gNTAlIHsgb3BhY2l0eTouODsgdHJhbnNmb3JtOnNjYWxlKDEuMDE1KTsgfSB9CiAgICAgIEBrZXlmcmFtZXMgd2FybVB1bHNlIHsgMCUsMTAwJSB7IG9wYWNpdHk6LjU7IH0gNTAlIHsgb3BhY2l0eTouODU7IH0gfQogICAgICBAa2V5ZnJhbWVzIHNoaW5lU3dlZXAgewogICAgICAgIDAlIHsgb3BhY2l0eTowOyB0cmFuc2Zvcm06dHJhbnNsYXRlWSgtODIwcHgpOyB9CiAgICAgICAgMTIlIHsgb3BhY2l0eTouOTsgfSAzOCUgeyBvcGFjaXR5Oi45OyB9CiAgICAgICAgNTAlLDEwMCUgeyBvcGFjaXR5OjA7IHRyYW5zZm9ybTp0cmFuc2xhdGVZKDgyMHB4KTsgfQogICAgICB9CiAgICAgIEBrZXlmcmFtZXMgZW1iZXJSaXNlIHsKICAgICAgICAwJSB7IG9wYWNpdHk6MDsgdHJhbnNmb3JtOnRyYW5zbGF0ZSgwLDApIHNjYWxlKDEpOyB9CiAgICAgICAgMTIlIHsgb3BhY2l0eTouOTU7IH0KICAgICAgICAxMDAlIHsgb3BhY2l0eTowOyB0cmFuc2Zvcm06dHJhbnNsYXRlKHZhcigtLWR4LDBweCksLTEyMHB4KSBzY2FsZSguNCk7IH0KICAgICAgfQogICAgICBAbWVkaWEgKHByZWZlcnMtcmVkdWNlZC1tb3Rpb246IHJlZHVjZSkgewogICAgICAgIC5ib2x0LWdsb3csLndhcm0sLnNoaW5lLC5lbWJlciB7IGFuaW1hdGlvbjpub25lICFpbXBvcnRhbnQ7IH0KICAgICAgICAuYm9sdC1nbG93IHsgb3BhY2l0eTouNTU7IH0gLndhcm0geyBvcGFjaXR5Oi42OyB9IC5lbWJlciB7IG9wYWNpdHk6LjM1OyB9CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgoKICA8Y2lyY2xlIGN4PSI1MTIuOCIgY3k9IjUxNC41IiByPSI0NTcuNSIgZmlsbD0iIzAwMCIvPgogIDxnIGNsaXAtcGF0aD0idXJsKCNkaXNjY2xpcCkiPgogICAgPGNpcmNsZSBjeD0iNTEyLjgiIGN5PSI1MTQuNSIgcj0iNDU3LjUiIGZpbGw9InVybCgjYmcpIi8+CiAgICA8IS0tIGNyYWNrZWQtc3RvbmUgdGV4dHVyZSAtLT4KICAgIDxjaXJjbGUgY3g9IjUxMi44IiBjeT0iNTE0LjUiIHI9IjQ1Ny41IiBmaWxsPSIjMGIwYjBiIiBmaWx0ZXI9InVybCgjZ3JhaW4pIiBvcGFjaXR5PSIwLjUiLz4KICAgIDxnPgogICAgICA8cGF0aCBkPSJNIDQ2Mi4wLDYxNi4wIEwgNDYxLjIsNjA1LjAgTCA0NjMuMCw1NzcuMCBMIDQ1OC42LDU2Ny4xIEwgNDUxLjEsNTU1LjIgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2Utb3BhY2l0eT0iMC4yNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMTkxLjYsMzc0LjQgTCAxOTEuOSwzNTMuMyBMIDE4Ny4wLDMyNC4yIEwgMTY1LjMsMzA4LjIgTCAxNTMuNywzMDQuOSBMIDEzOS4zLDMxMC41IEwgMTI2LjcsMzA4LjQgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2Utb3BhY2l0eT0iMC4zOSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNTkyLjUsNTQ3LjcgTCA1OTguMSw1NzIuNCBMIDYwNi4wLDU5OS43IEwgNjEzLjAsNjEyLjAgTCA2MzUuMiw2MjQuNCBMIDY1MC4yLDYyMS40IEwgNjY2LjAsNjE4LjAgTCA2ODYuOSw2MTEuNiBMIDY5Ny4yLDU5NC44IEwgNjk2LjgsNTc4LjYgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2Utb3BhY2l0eT0iMC4zNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNjAxLjksNDkyLjggTCA1ODUuNiw0OTEuMyBMIDU2MC4wLDQ4OS4xIEwgNTUxLjIsNDk1LjcgTCA1MzkuMiw1MTYuMCBMIDU0NC4yLDUzOS44IEwgNTU0LjgsNTU4LjEgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4zIiBzdHJva2Utb3BhY2l0eT0iMC4zNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNDQzLjYsMTg5LjQgTCA0MzUuOCwyMDkuOCBMIDQzMS4xLDIyMi41IEwgNDMxLjMsMjQ3LjAgTCA0MzYuNSwyNzQuOCBMIDQzOC44LDI4Ny4xIEwgNDQzLjksMzAxLjAgTCA0NTguOSwzMTEuMiAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1vcGFjaXR5PSIwLjQzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA3ODMuNSw0OTEuNCBMIDc4MC42LDUwMy44IEwgNzgzLjgsNTE3LjMgTCA3ODkuMiw1MzguMCBMIDc5NC43LDU0NS4yIEwgODA2LjcsNTU2LjkgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4zIiBzdHJva2Utb3BhY2l0eT0iMC40OSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNDMxLjcsMzA3LjkgTCA0MjQuMSwyOTEuMCBMIDQzMC4wLDI2Mi42IEwgNDQwLjIsMjQ0LjUgTCA0NDYuMCwyMjguMiBMIDQ1MS4zLDIxMS43IEwgNDQ0LjksMTgyLjcgTCA0NDEuMywxNzEuOSBMIDQzOS43LDE2MC45IEwgNDM5LjAsMTQwLjYgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2Utb3BhY2l0eT0iMC40MCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNjMwLjcsNTcwLjMgTCA2MjQuOCw1ODUuNSBMIDYyMy4yLDU5Ni45IEwgNjAzLjIsNjE5LjEgTCA1OTEuMiw2MzQuMCBMIDU5MS41LDY0NS4yIEwgNTk1LjcsNjU5LjEgTCA1OTIuNSw2NzEuMSBMIDYwNy42LDY5NS44IEwgNjEzLjMsNzA2LjQgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2Utb3BhY2l0eT0iMC4yNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMTU4LjgsNDUxLjMgTCAxNzcuOSw0NDYuMCBMIDE5My4wLDQ1Mi43IEwgMjEzLjMsNDUxLjcgTCAyMzUuNyw0NTAuOCBMIDI2MC45LDQ1NC41IEwgMjcxLjgsNDYxLjggTCAyODkuMSw0NjQuMyBMIDI5OS41LDQ3Mi40IEwgMzE4LjksNDg3LjEgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2Utb3BhY2l0eT0iMC40NSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzg4LjUsNTM2LjQgTCAzNjQuNCw1MjAuOSBMIDM1OS41LDQ5Mi4zIEwgMzU0LjEsNDc5LjcgTCAzNDQuMSw0NzEuMiBMIDMyMi41LDQ2Ni43IEwgMzA1LjYsNDQ2LjEgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2Utb3BhY2l0eT0iMC40MSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNTQxLjYsNDI1LjIgTCA1MzkuNiw0MDAuNSBMIDUzOC4xLDM4Ny45IEwgNTQzLjksMzczLjAgTCA1NjYuNiwzNTQuMyBMIDU3Ny45LDM0MS4xIEwgNjAyLjAsMzM4LjUgTCA2MTEuMiwzMzEuMyAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIwLjkiIHN0cm9rZS1vcGFjaXR5PSIwLjQ4IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA1NTEuOCw0MDkuNCBMIDU2Mi45LDM5Ny40IEwgNTcxLjYsMzg5LjUgTCA1NzEuNywzNjAuMSBMIDU3Ni45LDM0MC43IEwgNTkyLjEsMzMwLjkgTCA2MTguNCwzMzIuNCBMIDYzMS4zLDMyNi40ICIgc3Ryb2tlPSIjMjQxNjEyIiBzdHJva2Utd2lkdGg9IjEuMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMzEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDM4OC4wLDQzOS4yIEwgMzgwLjQsNDYyLjUgTCAzNjEuMiw0NzUuMCBMIDM0MS40LDQ3NS45IEwgMzE3LjUsNDYyLjUgTCAzMDUuNCw0NjMuOSAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1vcGFjaXR5PSIwLjQ3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA1NTQuMiwyNjguNCBMIDU0Ni45LDI1MC45IEwgNTQ2LjcsMjMwLjIgTCA1NDAuNywyMTEuMiBMIDUzNS4zLDE4Ni4zIEwgNTE5LjMsMTczLjEgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4wIiBzdHJva2Utb3BhY2l0eT0iMC4zMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNTQzLjQsMjk3LjAgTCA1MjIuNSwyOTAuOCBMIDUwMy42LDI4NC45IEwgNDg4LjYsMjc0LjAgTCA0NzMuOSwyNjIuMCAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1vcGFjaXR5PSIwLjQyIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA3NjEuOCwyNzAuMiBMIDc1My4wLDI4MC4xIEwgNzQyLjQsMjk0LjQgTCA3MzUuNSwzMDguNCBMIDcyMy4zLDMyMS42IEwgNzE5LjQsMzM2LjUgTCA3MjguOSwzNjAuMCBMIDcyMC45LDM4MS4wIEwgNzE4LjksMzk1LjIgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMC45IiBzdHJva2Utb3BhY2l0eT0iMC4zNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNTEwLjgsNDE3LjkgTCA1MzcuMSw0MjAuOCBMIDU1My4yLDQxMi43IEwgNTY3LjgsNDA1LjggTCA1NzYuOSwzOTMuMCBMIDU4NC44LDM4Ny45ICIgc3Ryb2tlPSIjMjQxNjEyIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLW9wYWNpdHk9IjAuMzYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDY3OC45LDUzMy41IEwgNjc4LjgsNTIyLjEgTCA2ODcuNyw1MTEuNiBMIDY5OC4yLDUwOS4xIEwgNzIxLjEsNDkyLjkgTCA3MzEuMSw0NzAuMiBMIDc1My4wLDQ1NC43IEwgNzgwLjUsNDQ1LjggTCA3OTguNSw0MzYuNSAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1vcGFjaXR5PSIwLjM3IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA0NDIuMiw2NDguNyBMIDQ0NC4yLDYzOC4zIEwgNDYyLjEsNjI1LjAgTCA0NzIuNyw2MjMuNiBMIDQ4Mi4wLDYyOC40IEwgNDkwLjUsNjQ0LjkgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2Utb3BhY2l0eT0iMC4zOSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNjQ1LjYsNDQ4LjYgTCA2NTYuOSw0NzUuMCBMIDY1MS4zLDQ4OC40IEwgNjU1LjUsNTE2LjYgTCA2NTQuMCw1MzYuNyBMIDY2MS43LDU1My40IEwgNjYzLjYsNTY4LjAgTCA2NTIuNSw1OTUuNyBMIDY1Ni4yLDYwNC4zICIgc3Ryb2tlPSIjMjQxNjEyIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNDkiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDM3MS43LDUwMS44IEwgMzU0LjAsNDk4LjEgTCAzMjguMCw0OTIuOCBMIDMwOC40LDQ5Mi40IEwgMjgwLjQsNDgyLjYgTCAyNTQuMCw0ODAuNyBMIDIzMy42LDQ3MS41IEwgMjE3LjksNDY3LjMgTCAyMDcuNiw0NzIuOSBMIDE5OS4zLDQ5Ni4wICIgc3Ryb2tlPSIjMjQxNjEyIiBzdHJva2Utd2lkdGg9IjEuMCIgc3Ryb2tlLW9wYWNpdHk9IjAuMjkiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDc4Ny43LDY3NS45IEwgODA5LjMsNjc1LjYgTCA4MTguOCw2NzguNyBMIDgzMy4xLDY3NS41IEwgODQxLjEsNjYwLjkgTCA4NDcuNSw2MzEuOSBMIDg0Ni43LDYyMi4zIEwgODU0LjAsNjEwLjggTCA4NTQuNCw1OTQuOCBMIDg0NS4wLDU4My4yICIgc3Ryb2tlPSIjMjQxNjEyIiBzdHJva2Utd2lkdGg9IjEuMyIgc3Ryb2tlLW9wYWNpdHk9IjAuMzEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDUyOC41LDQyMC4yIEwgNTMwLjksNDEwLjYgTCA1MjIuOCwzOTcuNiBMIDUwNC43LDM4Ni4zIEwgNDg0LjMsMzcyLjMgTCA0NjguOCwzNTMuOCAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1vcGFjaXR5PSIwLjM1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSAzNDYuNCw4MzUuNCBMIDM1MS40LDg0Ni4zIEwgMzQ4LjUsODcwLjIgTCAzNDUuOSw4ODguMCBMIDMzNi43LDkwNS4zIEwgMzEzLjgsOTE0LjcgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMC44IiBzdHJva2Utb3BhY2l0eT0iMC40MiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNTk2LjAsMjQ3LjAgTCA2MDMuMSwyNDAuNSBMIDYwNi42LDIyNC4zIEwgNTk0LjgsMjAwLjUgTCA1ODcuMCwxNzkuOCBMIDU4My42LDE1Ni43IEwgNTgyLjEsMTQ3LjggTCA1OTAuNCwxMjQuNSBMIDU5Ny4zLDEwNS41IEwgNjAzLjMsOTcuMCAiIHN0cm9rZT0iIzI0MTYxMiIgc3Ryb2tlLXdpZHRoPSIxLjQiIHN0cm9rZS1vcGFjaXR5PSIwLjMxIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2NDQuNSw1ODEuMSBMIDYzMi4wLDU2Mi4yIEwgNjE1LjcsNTQxLjAgTCA1ODguMSw1MzUuNSBMIDU3OC4zLDUzNy4xIEwgNTY1LjEsNTM2LjMgIiBzdHJva2U9IiMyNDE2MTIiIHN0cm9rZS13aWR0aD0iMS4zIiBzdHJva2Utb3BhY2l0eT0iMC4zMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8L2c+CiAgICA8IS0tIHdhcm0gYW1iaWVudCBnbG93IGJsZWVkaW5nIGZyb20gdGhlIGZhdWx0IC0tPgogICAgPGVsbGlwc2UgY2xhc3M9Indhcm0iIGN4PSI1MTMiIGN5PSI1MTQiIHJ4PSIyMDAiIHJ5PSIzNDAiCiAgICAgICAgICAgICBmaWxsPSJ1cmwoI3dhcm1nbG93KSIgdHJhbnNmb3JtPSJyb3RhdGUoMzggNTEyLjggNTE0LjUpIi8+CiAgICA8IS0tIGZpc3N1cmUgYnJhbmNoZXMgLS0+CiAgICA8Zz4KICAgICAgPHBhdGggZD0iTSA3NDUuMCwyOTAuMCBMIDc2MS42LDI4MC42IEwgNzY4LjcsMjcxLjkgTCA3NjkuNiwyNDkuOSBMIDc3Ny4xLDIzMS4xIEwgNzgxLjQsMjIzLjggTCA3ODUuOCwyMDkuNSAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDMxNS4wLDc4NS4wIEwgMzMzLjMsNzg2LjEgTCAzNTAuMSw3NzYuNiBMIDM1NC4wLDc2Ny4xIEwgMzYyLjgsNzU2LjcgTCAzNjYuNCw3MzkuNyAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDUzMS4wLDUzNC4wIEwgNTIzLjQsNTQxLjYgTCA1MDYuOSw1NTEuNSBMIDQ4Ni43LDU1OC4yIEwgNDY1LjQsNTUzLjEgIiBzdHJva2U9IiMzYTFjMTAiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2Utb3BhY2l0eT0iMC42IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA3NDMuMCwyMzAuMCBMIDc1NC42LDIzNi44IEwgNzY0LjIsMjM5LjggTCA3NzUuNSwyNDQuMCBMIDc4My43LDI1Ni42IEwgNzk0LjcsMjY2LjUgTCA4MTIuNywyNzQuNCAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDQzMi4wLDU5OC4wIEwgNDQwLjYsNjAwLjcgTCA0NTQuNCw2MDcuMiBMIDQ2NS4xLDYxMy42IEwgNDY4LjQsNjIyLjYgTCA0NzAuNCw2MzkuMyBMIDQ2Ni4xLDY1MS4yICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNDg3LjAsNTg4LjAgTCA0ODQuMSw1NzguMCBMIDQ4Ny4zLDU2OC4xIEwgNDg5LjUsNTU4LjEgTCA0ODMuMCw1NDQuMyBMIDQ4MC41LDUzMy4xICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMjUzLjAsODczLjAgTCAyNjkuMSw4NzUuMSBMIDI4MC44LDg4NC4zIEwgMjkwLjksODg5LjcgTCAyOTYuMyw4OTguNCAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDYwNS4wLDQxOS4wIEwgNjE1LjEsNDI5LjggTCA2MTcuNSw0MzguMiBMIDYyNC41LDQ0OC4wIEwgNjMxLjQsNDU1LjcgTCA2NDMuOCw0NTguNyBMIDY1OS4wLDQ3NC4zICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNjI4LjAsMzU4LjAgTCA2MjEuOSwzNTAuMSBMIDYxMy4wLDMzMS40IEwgNjAzLjIsMzEyLjQgTCA2MDQuMywyOTkuNCBMIDU5OS4xLDI4Ny4yIEwgNTk4LjgsMjcyLjUgIiBzdHJva2U9IiMzYTFjMTAiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2Utb3BhY2l0eT0iMC42IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSAyNTEuMCw4NDEuMCBMIDI2MC45LDgyOS4xIEwgMjY3LjcsODExLjYgTCAyNjIuNCw3OTQuOSBMIDI2NS4xLDc4Ny4wIEwgMjcyLjYsNzcxLjcgTCAyODUuNyw3NjIuMyAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDM0My4wLDc0OC4wIEwgMzM1LjUsNzY1LjkgTCAzMzYuNiw3NzUuOCBMIDMzOS4yLDc4Ni4xIEwgMzQwLjMsODA1LjAgTCAzNDYuMiw4MTIuNyBMIDM1Ni4yLDgxOS43ICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gODAwLjAsMjA3LjAgTCA4MTAuMywyMDMuMCBMIDgxNy40LDE5NS4xICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gNzkxLjAsMTU2LjAgIiBzdHJva2U9IiMzYTFjMTAiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2Utb3BhY2l0eT0iMC42IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA3OTMuMCwxNTUuMCAiIHN0cm9rZT0iIzNhMWMxMCIgc3Ryb2tlLXdpZHRoPSIxLjEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDQwNC4wLDY4NC4wIEwgMzg5LjEsNjg5LjggTCAzNzguMCw2ODguMyBMIDM2Ni4yLDY3Ni44ICIgc3Ryb2tlPSIjM2ExYzEwIiBzdHJva2Utd2lkdGg9IjEuMSIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8L2c+CiAgICA8IS0tIHRoZSBmYXVsdDogY29yZSArIHNoaW5lIHN3ZWVwLCBjbGlwcGVkIHRvIHRoZSBkaXNjIC0tPgogICAgPHVzZSBocmVmPSIjYm9sdCIgY2xhc3M9ImJvbHQtY29yZSIvPgogICAgPGcgY2xpcC1wYXRoPSJ1cmwoI2JvbHRjbGlwKSI+CiAgICAgIDxyZWN0IGNsYXNzPSJzaGluZSIgeD0iNTUiIHk9IjE3IiB3aWR0aD0iOTE1IiBoZWlnaHQ9IjI0MCIvPgogICAgPC9nPgogICAgPHVzZSBocmVmPSIjYm9sdCIgY2xhc3M9ImJvbHQtZ2xvdyIvPgogICAgPCEtLSBlbWJlcnMgLS0+CiAgICA8Zz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iNjEyIiBjeT0iMjUwIiByPSIzLjAiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246NS4wczthbmltYXRpb24tZGVsYXk6MC4wczstLWR4Oi0xOHB4Ii8+CiAgICA8Y2lyY2xlIGNsYXNzPSJlbWJlciIgY3g9IjU2MCIgY3k9IjMzMCIgcj0iMi4yIiBzdHlsZT0iYW5pbWF0aW9uLWR1cmF0aW9uOjYuNXM7YW5pbWF0aW9uLWRlbGF5OjEuMnM7LS1keDotMjRweCIvPgogICAgPGNpcmNsZSBjbGFzcz0iZW1iZXIiIGN4PSI2NTAiIGN5PSI0MzAiIHI9IjIuNiIgc3R5bGU9ImFuaW1hdGlvbi1kdXJhdGlvbjo1LjZzO2FuaW1hdGlvbi1kZWxheToyLjFzOy0tZHg6LTE0cHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iNDMwIiBjeT0iNTYwIiByPSIzLjIiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246Ny4wczthbmltYXRpb24tZGVsYXk6MC42czstLWR4OjIwcHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iMzYwIiBjeT0iNjEwIiByPSIyLjIiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246NS4yczthbmltYXRpb24tZGVsYXk6My4wczstLWR4OjE2cHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iMzAwIiBjeT0iNzIwIiByPSIyLjgiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246Ni4yczthbmltYXRpb24tZGVsYXk6MS44czstLWR4OjIycHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iNTQwIiBjeT0iNzAwIiByPSIyLjQiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246NS44czthbmltYXRpb24tZGVsYXk6Mi42czstLWR4Oi0yMHB4Ii8+CiAgICA8Y2lyY2xlIGNsYXNzPSJlbWJlciIgY3g9IjQ3MCIgY3k9Ijc4MCIgcj0iMy4wIiBzdHlsZT0iYW5pbWF0aW9uLWR1cmF0aW9uOjYuOHM7YW5pbWF0aW9uLWRlbGF5OjAuOXM7LS1keDoxNHB4Ii8+CiAgICA8Y2lyY2xlIGNsYXNzPSJlbWJlciIgY3g9IjYwMCIgY3k9IjU2MCIgcj0iMi4wIiBzdHlsZT0iYW5pbWF0aW9uLWR1cmF0aW9uOjUuNHM7YW5pbWF0aW9uLWRlbGF5OjQuMHM7LS1keDotMTJweCIvPgogICAgPGNpcmNsZSBjbGFzcz0iZW1iZXIiIGN4PSIzOTAiIGN5PSIzODAiIHI9IjIuNiIgc3R5bGU9ImFuaW1hdGlvbi1kdXJhdGlvbjo2LjBzO2FuaW1hdGlvbi1kZWxheToyLjlzOy0tZHg6MThweCIvPgogICAgPGNpcmNsZSBjbGFzcz0iZW1iZXIiIGN4PSI3MDAiIGN5PSIzMDAiIHI9IjIuNCIgc3R5bGU9ImFuaW1hdGlvbi1kdXJhdGlvbjo2LjRzO2FuaW1hdGlvbi1kZWxheToxLjVzOy0tZHg6LTE2cHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iMzMwIiBjeT0iNDgwIiByPSIyLjAiIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246NS4wczthbmltYXRpb24tZGVsYXk6My42czstLWR4OjEycHgiLz4KICAgIDxjaXJjbGUgY2xhc3M9ImVtYmVyIiBjeD0iNTkwIiBjeT0iNDcwIiByPSIxLjciIHN0eWxlPSJhbmltYXRpb24tZHVyYXRpb246NS41czthbmltYXRpb24tZGVsYXk6Mi4yczstLWR4Oi0xMHB4Ii8+CiAgICA8Y2lyY2xlIGNsYXNzPSJlbWJlciIgY3g9IjQ3MCIgY3k9IjMwMCIgcj0iMS44IiBzdHlsZT0iYW5pbWF0aW9uLWR1cmF0aW9uOjYuMXM7YW5pbWF0aW9uLWRlbGF5OjMuOHM7LS1keDoxNHB4Ii8+CiAgICA8Y2lyY2xlIGNsYXNzPSJlbWJlciIgY3g9IjY2MCIgY3k9IjYyMCIgcj0iMi4xIiBzdHlsZT0iYW5pbWF0aW9uLWR1cmF0aW9uOjUuOXM7YW5pbWF0aW9uLWRlbGF5OjEuMHM7LS1keDotMThweCIvPgogICAgPGNpcmNsZSBjbGFzcz0iZW1iZXIiIGN4PSIzNTAiIGN5PSI3MDAiIHI9IjEuNiIgc3R5bGU9ImFuaW1hdGlvbi1kdXJhdGlvbjo1LjNzO2FuaW1hdGlvbi1kZWxheTo0LjRzOy0tZHg6MTBweCIvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+Cg==" alt="Parent Data Force">
+    <div class="wordmark">Parent Data Force</div>
+    <nav>
+      <a href="#">Data</a><a href="#">Districts</a><a href="#" class="active">News</a>
+      <a href="#">Cases</a><a href="#">About</a>
+    </nav>
+    <a class="cta" href="#">Donate</a>
+  </header>
+
+  <div class="hero">
+    <canvas class="pdf-ascii" data-scene="hero" data-cell="15"></canvas>
+    <div class="overlay">
+      <div class="kicker">Parent Data Force — News &amp; Records</div>
+      <h1>The record,<br>cracked open.</h1>
+      <p>Independent special-education and public-accountability reporting. We pull the public record out of Massachusetts districts and put it where parents can use it.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="rule">────────────────────── ✦ ──────────────────────</div>
+    <h2>Latest from the record</h2>
+    <div class="sub">Filings, data, and analysis — straight from district sources.</div>
+    <div class="cards">
+      <a class="card" href="#" style="text-decoration:none;color:inherit">
+        <div class="tag">Investigations</div>
+        <h3>Hellman v. Craven and the Fight for Private-School Records</h3>
+        <div class="meta">Sep 8, 2026 · 12 min read</div>
+        <div class="read">READ →</div>
+      </a>
+      <a class="card" href="#" style="text-decoration:none;color:inherit">
+        <div class="tag">Policy</div>
+        <h3>The Student Opportunity Act's Unintended Consequences</h3>
+        <div class="meta">Sep 5, 2026 · 9 min read</div>
+        <div class="read">READ →</div>
+      </a>
+      <a class="card" href="#" style="text-decoration:none;color:inherit">
+        <div class="tag">Policy</div>
+        <h3>Massachusetts DESE Issues Updated Significant-Disproportionality Guidance</h3>
+        <div class="meta">Sep 1, 2026 · 7 min read</div>
+        <div class="read">READ →</div>
+      </a>
+    </div>
+  </div>
+
+  <script>/* Auto-generated by tools/extract_logo.py — exact crack outline (SVG path, viewBox 0 0 586 731). */
+window.PDFORCE_CRACK_PATH = "M 560.0,0.0 L 585.0,21.0 L 580.0,29.0 L 577.0,43.0 L 564.0,55.0 L 559.0,64.0 L 544.0,76.0 L 526.0,95.0 L 522.0,102.0 L 512.0,135.0 L 486.0,161.0 L 464.0,190.0 L 456.0,196.0 L 412.0,219.0 L 379.0,250.0 L 372.0,264.0 L 359.0,321.0 L 358.0,332.0 L 306.0,401.0 L 292.0,413.0 L 254.0,433.0 L 233.0,440.0 L 215.0,454.0 L 205.0,468.0 L 178.0,519.0 L 171.0,529.0 L 164.0,546.0 L 162.0,563.0 L 128.0,596.0 L 92.0,620.0 L 82.0,630.0 L 72.0,645.0 L 62.0,667.0 L 32.0,697.0 L 31.0,708.0 L 20.0,718.0 L 15.0,730.0 L 0.0,719.0 L 11.0,693.0 L 18.0,686.0 L 37.0,677.0 L 47.0,668.0 L 57.0,644.0 L 81.0,608.0 L 110.0,593.0 L 139.0,567.0 L 145.0,556.0 L 150.0,535.0 L 177.0,488.0 L 199.0,443.0 L 204.0,437.0 L 244.0,414.0 L 282.0,395.0 L 291.0,388.0 L 335.0,327.0 L 344.0,278.0 L 358.0,235.0 L 365.0,227.0 L 395.0,203.0 L 419.0,190.0 L 453.0,168.0 L 484.0,135.0 L 495.0,119.0 L 510.0,75.0 L 537.0,41.0 L 539.0,38.0 L 541.0,25.0 L 552.0,14.0 L 558.0,1.0 L 560.0,0.0 Z";
+window.PDFORCE_CRACK_VIEWBOX = "0 0 586 731";
+</script>
+  <script>/**
+ * pdforce-ascii.js — animated ASCII hero for Parent Data Force.
+ *
+ * The brand fault line (the exact crack traced from the logo, embedded as
+ * window.PDFORCE_CRACK_PATH) splits a rippling dark data field, glowing with
+ * the signal orange ramp and a travelling shine. Public records — little
+ * document glyphs — well up out of the fissure, drip downward under gravity,
+ * and dissolve into the field. Embers and a sparse starfield drift above.
+ *
+ * Vanilla <canvas>, zero dependencies. The crack outline is rasterized once
+ * per resize from the same SVG path used for the vector logo, so the hero and
+ * the mark are pixel-identical in shape.
+ *
+ * Accessibility & performance:
+ *   - prefers-reduced-motion / saveData -> a single static frame
+ *   - IntersectionObserver -> pauses offscreen
+ *   - capped devicePixelRatio, pre-rendered glyph sprites, ~30fps ceiling
+ *
+ * Usage:
+ *   <canvas class="pdf-ascii" data-scene="hero" data-cell="15"></canvas>
+ *   window.PDFORCE_ASCII.mount(canvas, { scene: 'hero' });
+ */
+(function () {
+	'use strict';
+
+	var REDUCED = typeof window.matchMedia === 'function' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	var SAVE_DATA = !!(navigator.connection && navigator.connection.saveData);
+	var MOTION_OK = !REDUCED && !SAVE_DATA;
+
+	// Brand ramp: light tip -> signal -> deep. [r,g,b]
+	var ORANGE = [
+		[255, 176, 120], // #ffb078
+		[255, 106, 43],  // #ff6a2b
+		[230, 68, 10],   // #e6440a
+	];
+	var SIGNAL = [255, 90, 31];   // #ff5a1f
+	var GREY = [150, 150, 150];
+	var DIM = [74, 74, 78];
+
+	// Density ramp, light -> heavy.
+	var RAMP = [' ', '░', '▒', '▓', '█'];
+	// Record glyphs — little documents spilling out of the fault.
+	var RECORDS = ['▤', '▥', '▦', '▧'];
+
+	function lerp(a, b, f) { return a + (b - a) * f; }
+	function rampRGB(stops, t) {
+		var seg = t * (stops.length - 1);
+		var i = Math.min(stops.length - 2, Math.floor(seg));
+		var f = seg - i;
+		var a = stops[i], b = stops[i + 1];
+		return [lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f)];
+	}
+
+	// Deterministic hash -> [0,1)
+	function hash01(x, y, s) {
+		var h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 974634211)) | 0;
+		h = Math.imul(h ^ (h >>> 13), 1274126177);
+		h ^= h >>> 16;
+		return (h >>> 0) / 4294967296;
+	}
+
+	function starGlyph(x, y, frame) {
+		var b = Math.floor(hash01(x, y, frame) * 150);
+		if (b === 0) return '✦';
+		if (b === 1) return '✧';
+		if (b === 2) return '·';
+		return null;
+	}
+
+	// Rippling field amplitude in [0,1]: three interfering travelling waves.
+	function fieldAmp(x, y, cx, top, hh, w, t) {
+		var dx = (x - cx) / 2, dy = y - top;
+		var dist = Math.sqrt(dx * dx + dy * dy);
+		var wave =
+			0.5 * Math.sin(dist * 0.5 - t) +
+			0.3 * Math.sin(x * 0.2 + y * 0.42 - t * 0.7) +
+			0.2 * Math.sin(Math.abs(dx) * 0.75 + dy * 0.5 - t * 1.3);
+		var level = 0.5 + 0.5 * wave;
+		var edge = Math.max(0, 1 - Math.abs(x - cx) / (w * 0.5));
+		var fade = Math.max(0, 1 - (dy / Math.max(1, hh)) * 0.5);
+		return level * Math.pow(edge, 0.7) * fade;
+	}
+
+	function mount(canvas, opts) {
+		opts = opts || {};
+		var ctx = canvas.getContext('2d');
+		var dpr = Math.min(2, window.devicePixelRatio || 1);
+		var fontPx = 0, cellW = 0, cellH = 0, cols = 0, rows = 0;
+		var spriteCache = Object.create(null);
+
+		// crack raster: intensity per cell + position along the fault (0..1)
+		var crackI = null, crackT = null, crackCells = [];
+
+		function css(rgb) { return 'rgb(' + (rgb[0] | 0) + ',' + (rgb[1] | 0) + ',' + (rgb[2] | 0) + ')'; }
+
+		function sprite(glyph, rgb) {
+			var key = glyph + '|' + (rgb[0] >> 4) + '|' + (rgb[1] >> 4) + '|' + (rgb[2] >> 4);
+			var s = spriteCache[key];
+			if (s) return s;
+			s = document.createElement('canvas');
+			s.width = Math.max(1, Math.ceil(cellW * dpr));
+			s.height = Math.max(1, Math.ceil(cellH * dpr));
+			var c = s.getContext('2d');
+			c.font = fontPx + 'px "JetBrains Mono","Fira Code",monospace';
+			c.textAlign = 'center'; c.textBaseline = 'middle';
+			c.fillStyle = css(rgb);
+			c.fillText(glyph, s.width / 2, s.height / 2 + fontPx * 0.04);
+			spriteCache[key] = s;
+			return s;
+		}
+
+		// Rasterize the real crack path onto the cell grid, scaled to the hero.
+		function buildCrack() {
+			crackI = new Float32Array(cols * rows);
+			crackT = new Float32Array(cols * rows);
+			crackCells = [];
+			var d = window.PDFORCE_CRACK_PATH;
+			if (!d || typeof Path2D === 'undefined') return;
+			var vb = (window.PDFORCE_CRACK_VIEWBOX || '0 0 586 731').split(/\s+/).map(Number);
+			var vw = vb[2], vh = vb[3];
+
+			// Fit the crack to ~92% of hero height, centered at 66% width.
+			var targetH = rows * 0.92;
+			var scale = targetH / vh;
+			var offCol = Math.round(cols * 0.66 - (vw * scale) / 2);
+			var offRow = Math.round((rows - targetH) / 2);
+
+			var off = document.createElement('canvas');
+			off.width = cols; off.height = rows;
+			var oc = off.getContext('2d');
+			oc.translate(offCol, offRow);
+			oc.scale(scale, scale);
+			oc.fillStyle = '#fff';
+			oc.fill(new Path2D(d));
+			var img = oc.getImageData(0, 0, cols, rows).data;
+
+			var minX = cols, maxX = 0;
+			for (var y = 0; y < rows; y++) {
+				for (var x = 0; x < cols; x++) {
+					var a = img[(y * cols + x) * 4 + 3] / 255;
+					if (a > 0.12) {
+						crackI[y * cols + x] = a;
+						if (x < minX) minX = x;
+						if (x > maxX) maxX = x;
+					}
+				}
+			}
+			// position along the fault (top-right=0 -> bottom-left=1) for the shine
+			for (var y2 = 0; y2 < rows; y2++) {
+				for (var x2 = 0; x2 < cols; x2++) {
+					var idx = y2 * cols + x2;
+					if (crackI[idx] > 0) {
+						var t = Math.min(1, Math.max(0, ((maxX - x2) + y2) / Math.max(1, (maxX - minX) + rows)));
+						crackT[idx] = t;
+						crackCells.push(idx);
+					}
+				}
+			}
+		}
+
+		// Records welling out of the fault and dripping down.
+		var particles = [];
+		var MAXP = 70;
+		function spawnParticles(count) {
+			if (!crackCells.length) return;
+			for (var i = 0; i < count; i++) {
+				var idx = crackCells[(Math.random() * crackCells.length) | 0];
+				var cx = idx % cols, cy = (idx / cols) | 0;
+				particles.push({
+					x: cx + Math.random(), y: cy,
+					vy: 0.02 + Math.random() * 0.05,
+					vx: (Math.random() - 0.5) * 0.06,
+					life: 1,
+					decay: 0.004 + Math.random() * 0.006,
+					ch: RECORDS[(Math.random() * RECORDS.length) | 0],
+				});
+			}
+		}
+
+		function stepParticles() {
+			for (var i = particles.length - 1; i >= 0; i--) {
+				var p = particles[i];
+				p.vy = Math.min(0.5, p.vy + 0.012);   // gravity
+				p.y += p.vy;
+				p.x += p.vx;
+				p.life -= p.decay;
+				if (p.y >= rows || p.life <= 0) particles.splice(i, 1);
+			}
+			// steady seep from the fault
+			if (particles.length < MAXP && Math.random() < 0.5) spawnParticles(2);
+		}
+
+		function drawFrame(timeMs) {
+			var t = timeMs * 0.001;
+			var frame = Math.floor(timeMs / 33);
+			var W = canvas.clientWidth, H = canvas.clientHeight;
+			ctx.clearRect(0, 0, W, H);
+
+			var fieldTop = Math.floor(rows * 0.30);
+			var fieldH = Math.max(1, rows - fieldTop);
+			var prog = (timeMs % 6000) / 6000;
+			var shinePos = (prog * 2.2) % 1;
+			var shineStr = MOTION_OK ? 0.7 : 0.0;
+			var pulse = MOTION_OK ? 0.82 + 0.18 * Math.sin(t * 2.0) : 1.0;
+
+			for (var y = 0; y < rows; y++) {
+				for (var x = 0; x < cols; x++) {
+					var idx = y * cols + x;
+					var glyph = null, rgb = null;
+
+					// 1. the fault line (bright, shine sweeping along it)
+					var ci = crackI[idx];
+					if (ci > 0) {
+						var ct = crackT[idx];
+						var base = rampRGB(ORANGE, ct);
+						var dshine = Math.abs(ct - shinePos);
+						var inten = Math.max(0, 1 - dshine / 0.16) * shineStr;
+						var r = base[0] + (255 - base[0]) * inten;
+						var g = base[1] + (255 - base[1]) * inten;
+						var b = base[2] + (255 - base[2]) * inten;
+						var glowF = (0.55 + 0.45 * ci) * pulse;
+						glyph = ci > 0.6 ? '█' : (ci > 0.35 ? '▓' : '▒');
+						rgb = [r * glowF, g * glowF, b * glowF];
+					}
+					// 2. rippling data field
+					else if (y >= fieldTop) {
+						var amp = fieldAmp(x, y, cols * 0.66, fieldTop, fieldH, cols, MOTION_OK ? t * 0.85 : 0);
+						amp += (hash01(x, y, 0) - 0.5) * 0.12;
+						if (amp > 0.34) {
+							var ri = Math.min(RAMP.length - 1, Math.max(1, Math.floor(amp * RAMP.length)));
+							glyph = RAMP[ri];
+							var dim = 0.34 + 0.2 * amp;
+							rgb = [SIGNAL[0] * dim * 0.7 + GREY[0] * dim * 0.3,
+							       SIGNAL[1] * dim * 0.7 + GREY[1] * dim * 0.3,
+							       SIGNAL[2] * dim * 0.7 + GREY[2] * dim * 0.3];
+						}
+					}
+					// 3. starfield in the sky
+					if (!glyph && y < fieldTop) {
+						var sg = starGlyph(x, y, MOTION_OK ? (frame >> 3) : 0);
+						if (sg) { glyph = sg; rgb = sg === '✦' ? SIGNAL : DIM; }
+					}
+
+					if (glyph && rgb) ctx.drawImage(sprite(glyph, rgb), x * cellW, y * cellH, cellW, cellH);
+				}
+			}
+
+			// 4. records dripping out (drawn over the field)
+			for (var i = 0; i < particles.length; i++) {
+				var p = particles[i];
+				var fade = Math.max(0, Math.min(1, p.life * 1.4));
+				var bright = 0.5 + 0.5 * fade;
+				var rgb2 = [SIGNAL[0] * bright, SIGNAL[1] * bright, SIGNAL[2] * bright];
+				ctx.drawImage(sprite(p.ch, rgb2), p.x * cellW, p.y * cellH, cellW, cellH);
+				// faint drip trail
+				if (p.vy > 0.08) {
+					ctx.drawImage(sprite('·', [SIGNAL[0] * 0.3 * fade, SIGNAL[1] * 0.3 * fade, SIGNAL[2] * 0.3 * fade]),
+						p.x * cellW, (p.y - 1) * cellH, cellW, cellH);
+				}
+			}
+		}
+
+		function resize() {
+			var w = canvas.clientWidth || (canvas.parentNode && canvas.parentNode.clientWidth) || 900;
+			var h = canvas.clientHeight || 480;
+			canvas.width = Math.round(w * dpr);
+			canvas.height = Math.round(h * dpr);
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			fontPx = parseInt(opts.cell || canvas.getAttribute('data-cell') || '15', 10);
+			ctx.font = fontPx + 'px "JetBrains Mono","Fira Code",monospace';
+			var m = ctx.measureText('█');
+			cellW = Math.max(6, m.width || fontPx * 0.6);
+			cellH = Math.round(fontPx * 1.12);
+			cols = Math.max(1, Math.ceil(w / cellW));
+			rows = Math.max(1, Math.ceil(h / cellH));
+			spriteCache = Object.create(null);
+			buildCrack();
+		}
+
+		resize();
+		if (MOTION_OK) spawnParticles(24);
+
+		var raf = null, running = false, start = 0;
+		function loop(now) {
+			if (!running) return;
+			if (!start) start = now;
+			stepParticles();
+			drawFrame(now - start);
+			raf = requestAnimationFrame(loop);
+		}
+		function play() { if (running || !MOTION_OK) return; running = true; start = 0; raf = requestAnimationFrame(loop); }
+		function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = null; }
+
+		if (MOTION_OK) {
+			if ('IntersectionObserver' in window) {
+				new IntersectionObserver(function (es) {
+					es.forEach(function (e) { e.isIntersecting ? play() : stop(); });
+				}, { threshold: 0.05 }).observe(canvas);
+			} else { play(); }
+		} else {
+			drawFrame(0);
+		}
+
+		var rt;
+		window.addEventListener('resize', function () {
+			clearTimeout(rt);
+			rt = setTimeout(function () { resize(); if (!MOTION_OK) drawFrame(0); }, 150);
+		});
+
+		return { play: play, stop: stop, redraw: function () { drawFrame(0); } };
+	}
+
+	function boot() {
+		var nodes = document.querySelectorAll('canvas.pdf-ascii');
+		for (var i = 0; i < nodes.length; i++) mount(nodes[i], {});
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+	else boot();
+
+	window.PDFORCE_ASCII = { mount: mount };
+})();
+</script>
+</body>
+</html>

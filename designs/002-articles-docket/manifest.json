@@ -1,0 +1,15 @@
+{
+  "checkpoint": 2,
+  "label": "articles-docket",
+  "note": "Articles page: public-record docket + scraper-data stats strip + featured investigation w/ live fault canvas",
+  "timestamp": "2026-09-10T00:43:27",
+  "files": [
+    "bolt.svg",
+    "logo-animated.svg",
+    "bolt-ascii.js",
+    "bolt-path.js",
+    "pdforce-ascii.js",
+    "design-mock.html",
+    "articles-mock.html"
+  ]
+}

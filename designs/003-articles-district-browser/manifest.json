@@ -1,0 +1,15 @@
+{
+  "checkpoint": 3,
+  "label": "articles-district-browser",
+  "note": "Articles page v2: district-vs-state scope tabs + browse-by-district index tied to 445-district scraper",
+  "timestamp": "2026-09-10T01:05:20",
+  "files": [
+    "bolt.svg",
+    "logo-animated.svg",
+    "bolt-ascii.js",
+    "bolt-path.js",
+    "pdforce-ascii.js",
+    "design-mock.html",
+    "articles-mock.html"
+  ]
+}

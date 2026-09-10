@@ -1,0 +1,16 @@
+{
+  "checkpoint": 6,
+  "label": "integrated-theme",
+  "note": "Full theme integration: logo hero + docket + stats + 404 + article reading styles wired into templates/functions.php",
+  "timestamp": "2026-09-10T02:07:08",
+  "files": [
+    "bolt.svg",
+    "logo-animated.svg",
+    "bolt-ascii.js",
+    "bolt-path.js",
+    "pdforce-ascii.js",
+    "design-mock.html",
+    "articles-mock.html",
+    "article-single-mock.html"
+  ]
+}

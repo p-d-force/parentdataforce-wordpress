@@ -10,6 +10,10 @@ wordpress-copy/
 # Logs
 *.log
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # OS
 .DS_Store
 Thumbs.db

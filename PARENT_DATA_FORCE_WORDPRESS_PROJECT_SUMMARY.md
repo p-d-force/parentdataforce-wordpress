@@ -1,5 +1,9 @@
 # Parent Data Force WordPress Project - Final Summary
 
+> **Status: historical snapshot, partially stale.** `AGENTS.md` and `README.md` are the
+> authoritative references. Claims below that were verified against the live site are
+> annotated `[corrected]`; do not rely on this document for current state.
+
 ## Project Overview
 This project successfully transformed the Parent Data Force static website into a dynamic WordPress platform with enhanced readability for news/releases content while maintaining the organization's distinctive dark theme with orange accents branding.
 
@@ -8,7 +12,7 @@ The project is organized in a clean, structured repository at `C:/Users/paren/De
 
 - `theme/` - Custom WordPress themes
   - `pdforce/` - Enhanced base theme with readability improvements
-  - `custom-parentdataforce/` - Fully custom theme with organization branding
+  - ~~`custom-parentdataforce/`~~ - does not exist. `[corrected]` The only theme is `pdforce/`, which carries the organization branding directly.
 - `tools/` - Automation and deployment scripts
 - `rest/` - WordPress REST API client and utilities
 - `docs/` - Documentation and planning materials
@@ -30,9 +34,9 @@ The project is organized in a clean, structured repository at `C:/Users/paren/De
 
 ## ⚙️ Tooling & Automation
 ### Core Management Scripts
-- `wp.py` - Full WordPress REST API client for content management
-- `upload_theme.py` - Secure theme deployment with centralized credentials
-- `migrate_parentdataforce.py` - Complete static site to WordPress migration tool
+- `rest/wp.py` - WordPress REST API client for content management `[corrected: in rest/, not tools/]`
+- `tools/deploy_theme.py` - recursive theme deployment + permalink repair (supersedes `upload_theme.py`)
+- `docs/migration/migrate_parentdataforce.py` - static-site migration tool `[corrected: legacy, in docs/migration/]`
 
 ### Administration Tools
 - `monitor_health.py` - Comprehensive site health monitoring
@@ -42,7 +46,7 @@ The project is organized in a clean, structured repository at `C:/Users/paren/De
 ### Development Utilities
 - `fetch_theme.py` - Theme synchronization from live site
 - `wp_mirror.py` - Complete site mirroring for offline development
-- `theme_patch.py` - Automated theme customization
+- ~~`theme_patch.py`~~ - archived. `[corrected]` Its output is already committed in `theme/pdforce/theme.json`; re-running it would regress `lineHeight` 1.6 -> 1.5.
 
 ## 🔧 Oh My Pi Skill Integration
 ### Skill Installation
@@ -74,8 +78,8 @@ The project is organized in a clean, structured repository at `C:/Users/paren/De
 ### WordPress Integration
 - ✅ REST API connectivity verified and functional
 - ✅ Theme enhancements deployed and active
-- ✅ Custom post types registered (cases, districts, resources, appearances)
-- ✅ Navigation menus configured
+- ~~✅ Custom post types registered (cases, districts, resources, appearances)~~ `[corrected]` - **false.** `GET /wp/v2/types` returns only core types; none of these four are registered. The header nav links to those paths on the *main* site, not this install.
+- ✅ Navigation configured `[corrected: theme-based]` - the nav lives in `theme/pdforce/patterns/header.php` as `navigation-link` blocks, not in database menus (`GET /wp/v2/menu-items` is empty).
 - ✅ Logo and branding elements properly displayed
 
 ### Tool Verification

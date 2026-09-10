@@ -24,11 +24,11 @@
 		<!-- /wp:paragraph -->
 
 		<!-- wp:heading {"level":1} -->
-		<h1 class="wp-block-heading"><?php esc_html_e( 'This record isn\u2019t in the file.', 'pdforce' ); ?></h1>
+		<h1 class="wp-block-heading"><?php esc_html_e( 'This record isn’t in the file.', 'pdforce' ); ?></h1>
 		<!-- /wp:heading -->
 
 		<!-- wp:paragraph -->
-		<p><?php esc_html_e( 'The page you\u2019re looking for doesn\u2019t exist or was moved. Try a search, or head back to the record index.', 'pdforce' ); ?></p>
+		<p><?php esc_html_e( 'The page you’re looking for doesn’t exist or was moved. Try a search, or head back to the record index.', 'pdforce' ); ?></p>
 		<!-- /wp:paragraph -->
 
 		<!-- wp:pattern {"slug":"pdforce/hidden-search"} /-->

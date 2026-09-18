@@ -26,3 +26,6 @@ Thumbs.db
 scratch/
 # Pristine upstream theme copy (reference only; regenerable)
 theme/pdforce/twentytwentyfive/
+
+# Local agent session state (Mnemopi/local:// artifacts)
+.omp/

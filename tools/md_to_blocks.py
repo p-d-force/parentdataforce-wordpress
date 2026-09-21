@@ -9,6 +9,8 @@ Pure stdlib. Supports exactly the subset used by the "sped news" articles:
   - `---`                       -> core/separator (is-style-wide)
   - `- item` / `1. item`        -> core/list
   - Inline **bold** / *italic*  -> <strong> / <em>
+  - Inline [text](url)          -> <a href> (used sparingly, e.g. linking
+                                  articles to the project page)
 
 Usage:
   python md_to_blocks.py <article.md>           # print body block HTML
@@ -28,8 +30,9 @@ def escape(text):
 
 
 def inline(text):
-    """Escape, then apply bold before italic so ** never misfires as two *."""
+    """Escape, then links, then bold before italic so ** never misfires as two *."""
     t = escape(text)
+    t = re.sub(r"\[([^\]]+)\]\(([^()\s]+)\)", r'<a href="\2">\1</a>', t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
     t = re.sub(r"\*([^*\n]+)\*", r"<em>\1</em>", t)
     return t

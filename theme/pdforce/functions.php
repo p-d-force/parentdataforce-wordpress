@@ -105,6 +105,30 @@ if ( ! function_exists( 'pdforce_enqueue_design_assets' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'pdforce_enqueue_design_assets' );
 
+if ( ! function_exists( 'pdforce_google_analytics' ) ) :
+	/**
+	 * Outputs the GA4 snippet so WordPress pages share the analytics property
+	 * used across parentdataforce.com. Prints on every public view.
+	 *
+	 * @since Parent Data Force 1.7
+	 *
+	 * @return void
+	 */
+	function pdforce_google_analytics() {
+		$ga_id = 'G-BVQTKPYBG2';
+		?>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr( $ga_id ); ?>"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+			gtag('config', '<?php echo esc_js( $ga_id ); ?>');
+		</script>
+		<?php
+	}
+endif;
+add_action( 'wp_head', 'pdforce_google_analytics', 20 );
+
 if ( ! function_exists( 'pdforce_block_styles' ) ) :
 	/**
 	 * Registers custom block styles.

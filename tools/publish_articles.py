@@ -67,6 +67,11 @@ ARTICLES = [
         "categories": [11, 7],   # Statewide, Policy
         "tags": [14, 12],        # Funding, Special Education
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article10_settlement_update.md",
+        "categories": [8],       # News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

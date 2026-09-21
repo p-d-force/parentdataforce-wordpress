@@ -105,9 +105,39 @@
 }
 .pdf-stats-grid {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
 	max-width: 1340px;
 	margin: 0 auto;
+}
+.pdf-stats-set {
+	grid-area: 1 / 1;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+.pdf-stats-set.is-hidden {
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+.pdf-stats-dots {
+	display: none;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.75rem 0 1.25rem;
+}
+.pdf-stats--rotating .pdf-stats-dots { display: flex; }
+.pdf-stats-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 999px;
+	border: 1px solid var(--pdf-mid);
+	background: transparent;
+	cursor: pointer;
+	padding: 0;
+}
+.pdf-stats-dot.is-active {
+	background: var(--pdf-signal);
+	border-color: var(--pdf-signal);
 }
 .pdf-stat {
 	padding: 1.625rem 2rem;
@@ -137,7 +167,7 @@
 	padding-top: 0.45rem;
 }
 @media (max-width: 900px) {
-	.pdf-stats-grid { grid-template-columns: repeat(2, 1fr); }
+	.pdf-stats-set { grid-template-columns: repeat(2, 1fr); }
 	.pdf-stat { border-left: none; border-top: 1px solid var(--pdf-line); }
 }
 
@@ -316,5 +346,5 @@
 
 /* respect reduced motion for any CSS-driven accents */
 @media (prefers-reduced-motion: reduce) {
-	.pdf-hero *, .pdf-404 * { animation: none !important; }
+	.pdf-hero *, .pdf-404 *, .pdf-stats .pdf-stats-set { animation: none !important; transition: none !important; }
 }

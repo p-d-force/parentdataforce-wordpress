@@ -84,6 +84,14 @@ if ( ! function_exists( 'pdforce_enqueue_design_assets' ) ) :
 			$ver
 		);
 
+		wp_enqueue_script(
+			'pdforce-stats-rotate',
+			get_theme_file_uri( 'assets/js/pdf-stats-rotate.js' ),
+			array(),
+			$ver,
+			true
+		);
+
 		if ( is_home() || is_front_page() || is_archive() || is_404() || is_search() ) {
 			// Crack path data must load before the engine consumes it.
 			wp_enqueue_script(

@@ -129,6 +129,13 @@
 	color: var(--pdf-mid);
 	margin-top: 0.5rem;
 }
+/* long range strings (e.g. "Sept. 18, 2021–present") shrink to fit the cell */
+.pdf-stat-num--range {
+	font-size: 1.125rem;
+	letter-spacing: 0.01em;
+	line-height: 1.25;
+	padding-top: 0.45rem;
+}
 @media (max-width: 900px) {
 	.pdf-stats-grid { grid-template-columns: repeat(2, 1fr); }
 	.pdf-stat { border-left: none; border-top: 1px solid var(--pdf-line); }
@@ -215,7 +222,19 @@
 	font-weight: 700;
 }
 
-/* ---- long-form article reading view -------------------------------------- */
+/* ---- donate pill (header nav) --------------------------------------------- */
+.wp-block-navigation .wp-block-navigation-item__content[href*="/donate/"] {
+	background: var(--pdf-signal);
+	color: #160801 !important;
+	border-radius: 999px;
+	padding: 0.4rem 0.9rem;
+	font-weight: 700;
+}
+.wp-block-navigation .wp-block-navigation-item__content[href*="/donate/"]:hover {
+	background: var(--pdf-signal-hi);
+}
+
+/* ---- long-form article reading view -------------------------------------- *//* ---- long-form article reading view -------------------------------------- */
 .pdf-article .wp-block-post-content > p {
 	font-size: 1.19rem;
 	line-height: 1.78;

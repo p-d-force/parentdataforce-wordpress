@@ -24,8 +24,8 @@ import wp_api  # noqa: E402
 
 TEMPLATE = "single-long-form"
 
-# Category ids (live-verified 2026-09-18): District Reports 10, Statewide 11,
-# Investigations 6, Policy 7, News 8, District Data 9.
+# Category ids (live-verified 2026-09-22): District Data 8, District Reports 10,
+# Investigations 6, Policy 7, News 9, Statewide 11.
 # Tag ids: Special Education 12, Public Records 13, Funding 14, Transparency 15.
 ARTICLES = [
     {
@@ -74,7 +74,7 @@ ARTICLES = [
     },
     {
         "path": r"C:/Users/paren/Development/sped news/article11_settlement_update.md",
-        "categories": [8],       # News
+        "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
 ]

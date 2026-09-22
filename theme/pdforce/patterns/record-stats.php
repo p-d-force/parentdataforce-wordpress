@@ -4,7 +4,7 @@
  * Slug: pdforce/record-stats
  * Categories: pdforce_page, featured
  * Description: Rotating data strip covering the Massachusetts Student
- *              Settlement Records Project (36 districts, 9 receipts, ...).
+ *              Settlement Records Project (40 districts, 9 receipts, ...).
  *              Sets crossfade every few seconds when JS is available; the
  *              first set renders statically without it.
  *
@@ -20,14 +20,14 @@
 $pdf_stat_sets = array(
 	// Set 1 — the project at a glance.
 	array(
-		array( 'num' => '36', 'lbl' => __( 'Districts requested', 'pdforce' ) ),
+		array( 'num' => '40', 'lbl' => __( 'Districts requested', 'pdforce' ) ),
 		array( 'num' => '9', 'lbl' => __( 'Receipts acknowledged', 'pdforce' ) ),
 		array( 'num' => '0', 'lbl' => __( 'Records published yet', 'pdforce' ) ),
 		array( 'num' => 'Sept. 18, 2021–present', 'lbl' => __( 'Records window', 'pdforce' ), 'range' => true ),
 	),
 	// Set 2 — where each district stands right now.
 	array(
-		array( 'num' => '27', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
+		array( 'num' => '31', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
 		array( 'num' => '4', 'lbl' => __( 'Confirmed via portals', 'pdforce' ) ),
 		array( 'num' => '3', 'lbl' => __( 'Re-sent after bounces', 'pdforce' ) ),
 		array( 'num' => 'Oct. 2', 'lbl' => __( 'First response milestone', 'pdforce' ) ),

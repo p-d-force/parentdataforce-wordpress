@@ -1,0 +1,155 @@
+# Parent Data Force — Production .htaccess
+# LiteSpeed / Apache 2.4+
+# Deployed: 2026-07-13
+
+# ── INDEX ──────────────────────────────────────────
+DirectoryIndex index.php index.html
+
+# ── REWRITE ENGINE ──────────────────────────────────
+RewriteEngine On
+# ── WORDPRESS → NEWS MOVE (2026-09-09) ─────────────
+RewriteRule ^wordpress(/.*)?$ /news$1 [R=301,L]
+
+# ── WORDPRESS AT ROOT (2026-09-22) ─────────────────
+# The WP install still lives at /news/ but serves the site root. Old
+# /news/<permalink> URLs 301 to the new root URLs; every WP-internal path
+# (wp-admin, wp-content, wp-includes, wp-json, wp-login, wp-cron...) keeps
+# hitting the real files at /news/.
+RewriteRule ^news/?$ / [R=301,L]
+RewriteRule ^news/wp-json(/.*)?$ /wp-json$1 [R=301,L]
+RewriteCond %{REQUEST_URI} !^/news/wp-
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^news/(.+)$ /$1 [R=301,L]
+
+# ── CANONICAL WWW ───────────────────────────────────
+RewriteCond %{HTTP_HOST} ^parentdataforce\.com [NC]
+RewriteRule ^(.*)$ https://www.parentdataforce.com/$1 [R=301,L]
+
+# ── CLEAN URL ROUTING (before trailing slash) ──────
+# Homepage
+RewriteRule ^$ index.php [L]
+
+# Articles
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^articles/(.+)$ articles/article.php?slug=$1 [QSA,L]
+
+# Cases
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^cases/(.+)$ cases/case.php?id=$1 [QSA,L]
+
+# Districts
+RewriteRule ^districts/([^/]+)/?$ districts/district.php?code=$1 [QSA,L]
+
+# Schools
+RewriteRule ^schools/(.+)$ schools/school.php [QSA,L]
+
+# Search
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^search$ search.php [QSA,L]
+
+# RSS
+RewriteRule ^rss$ rss.php [L]
+
+# Sitemap
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# ── WORDPRESS AT ROOT: asset passthroughs ──────────
+# WP core assets physically live at /news/ but must resolve at root URLs.
+
+RewriteRule ^wp-content/(.*)$ news/wp-content/$1 [L]
+RewriteRule ^wp-includes/(.*)$ news/wp-includes/$1 [L]
+RewriteRule ^wp-login\.php$ news/wp-login.php [L]
+
+# ── WORDPRESS AT ROOT: catch-all routing ───────────
+# Any path that is not a real static file/directory and not /news/* is a
+# WordPress permalink; hand it to the /news/ install.
+RewriteCond %{REQUEST_URI} !^/news/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /news/index.php [L]
+
+# ── TRAILING SLASH (directories only, after clean URLs) ──
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]{2,10}$
+RewriteCond %{REQUEST_URI} !/$
+RewriteRule ^(.+[^/])$ $1/ [R=301,L]
+
+# ── SECURITY ────────────────────────────────────────
+Options -Indexes
+
+# Block sensitive files
+<FilesMatch "\.(env|sql|log|md|lock)$">
+    Require all denied
+</FilesMatch>
+
+# Protect internal directories
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^backend/ - [F,L]
+RewriteRule ^vendor/ - [F,L]
+
+# Protect uploads
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^uploads/ - [F,L]
+
+# ── SECURITY HEADERS ────────────────────────────────
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always unset X-Powered-By
+    Header set Content-Security-Policy "default-src 'self' https://parentdataforce.com https://www.parentdataforce.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.youtube.com https://www.googletagmanager.com https://parentdataforce.com https://www.parentdataforce.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://parentdataforce.com https://www.parentdataforce.com; font-src 'self' https://fonts.gstatic.com https://parentdataforce.com https://www.parentdataforce.com; img-src 'self' data: https: https://parentdataforce.com https://www.parentdataforce.com; frame-src https://www.youtube.com; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://analytics.google.com https://parentdataforce.com https://www.parentdataforce.com;"
+</IfModule>
+
+# ── CORS (API only) ──────────────────────────────────
+<IfModule mod_headers.c>
+    <FilesMatch "^api/">
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type"
+    </FilesMatch>
+</IfModule>
+
+# ── COMPRESSION ──────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ── CACHING ──────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType text/css "access plus 1 hour"
+    ExpiresByType text/javascript "access plus 1 hour"
+    ExpiresByType application/javascript "access plus 1 hour"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ── ERROR PAGES ──────────────────────────────────────
+ErrorDocument 401 /errors/401.php
+ErrorDocument 403 /errors/403.php
+ErrorDocument 404 /errors/404.php
+ErrorDocument 500 /errors/500.php
+
+# ── PHP SETTINGS ─────────────────────────────────────
+<IfModule mod_php.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+# Redirect old speeches page to appearances
+RewriteRule ^speeches/?$ /appearances/ [R=301,L]

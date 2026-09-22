@@ -21,7 +21,7 @@
 			<!-- wp:group {"layout":{"type":"flex","flexWrap":"nowrap","alignItems":"center","blockGap":"var:preset|spacing|12"}} -->
 			<div class="wp-block-group">
 				<!-- wp:image {"width":80,"aspectRatio":"1","scale":"contain","linkDestination":"none","style":{"border":{"radius":"8px"}}} -->
-				<figure class="wp-block-image is-resized"><img src="https://www.parentdataforce.com/news/wp-content/uploads/brand/logo.png" alt="Parent Data Force Logo" width="80" height="80" style="aspect-ratio:1;object-fit:contain;border-radius:8px"/></figure>
+				<figure class="wp-block-image is-resized"><img src="https://www.parentdataforce.com/wp-content/uploads/brand/logo.png" alt="Parent Data Force Logo" width="80" height="80" style="aspect-ratio:1;object-fit:contain;border-radius:8px"/></figure>
 				<!-- /wp:image -->
 				<!-- wp:site-title {"level":0} /-->
 			</div>

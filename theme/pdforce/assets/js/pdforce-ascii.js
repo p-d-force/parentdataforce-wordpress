@@ -163,55 +163,153 @@
 		// the real logo (data-emit-from), records spill from its crack instead of
 		// an ASCII crack, so the mark stays the centerpiece.
 		var particles = [];
-		var MAXP = 46;
+		var nextSpawn = 1400 + Math.random() * 1200;
+		var MAXP = 7;
 		var emitEl = null;
 		var emitSel = opts.emitFrom || canvas.getAttribute('data-emit-from');
 		if (emitSel && typeof document !== 'undefined') emitEl = document.querySelector(emitSel);
 
-		// crack bottom-tip origin in canvas cell coords (from the logo element).
-		function emitOrigin() {
-			if (!emitEl) return null;
+		// crack-line emitter: rasterize the real crack inside the logo element
+		// and spawn documents from points along the visible fissure.
+		var logoCells = [];
+		function buildLogoCrack() {
+			var d = window.PDFORCE_CRACK_PATH;
+			if (!d || typeof Path2D === 'undefined' || !emitEl) return;
 			var cr = canvas.getBoundingClientRect();
 			var lr = emitEl.getBoundingClientRect();
-			// crack runs top-right -> bottom-left; emit from its lower tip region
-			var px = lr.left + lr.width * 0.34 - cr.left;
-			var py = lr.top + lr.height * 0.74 - cr.top;
-			return { col: px / cellW, row: py / cellH };
+			var wCols = Math.max(2, Math.round(lr.width / cellW));
+			var hRows = Math.max(2, Math.round(lr.height / cellH));
+			var vb = (window.PDFORCE_CRACK_VIEWBOX || '0 0 586 731').split(/\s+/).map(Number);
+			var vw = vb[2], vh = vb[3];
+			var off = document.createElement('canvas');
+			off.width = wCols; off.height = hRows;
+			var oc = off.getContext('2d');
+			oc.scale(wCols / vw, hRows / vh);
+			oc.fillStyle = '#fff';
+			oc.fill(new Path2D(d));
+			var img = oc.getImageData(0, 0, wCols, hRows).data;
+			logoCells = [];
+			for (var y = 0; y < hRows; y++) {
+				for (var x = 0; x < wCols; x++) {
+					if (img[(y * wCols + x) * 4 + 3] / 255 > 0.25) {
+						logoCells.push({ x: (lr.left - cr.left) / cellW + x, y: (lr.top - cr.top) / cellH + y });
+					}
+				}
+			}
 		}
 
 		function spawnParticles(count) {
-			var origin = emitOrigin();
+			if (emitEl && !logoCells.length) buildLogoCrack();
+			var origin = null;
+			if (logoCells.length) {
+				var oc = logoCells[(Math.random() * logoCells.length) | 0];
+				origin = { col: oc.x, row: oc.y };
+			}
 			for (var i = 0; i < count; i++) {
 				var cx, cy;
 				if (origin) {
-					cx = origin.col + (Math.random() - 0.5) * 6;
-					cy = origin.row + (Math.random() - 0.5) * 2;
+					cx = origin.col + (Math.random() - 0.5) * 1.6;
+					cy = origin.row + (Math.random() - 0.5) * 0.8;
 				} else if (crackCells.length) {
 					var idx = crackCells[(Math.random() * crackCells.length) | 0];
 					cx = idx % cols; cy = (idx / cols) | 0;
 				} else { break; }
 				particles.push({
 					x: cx, y: cy,
-					vy: 0.02 + Math.random() * 0.05,
+					rot: (Math.random() - 0.5) * 0.5,
+					va: (Math.random() - 0.5) * 0.0022,
+					sway: Math.random() * Math.PI * 2,
+					sprite: (Math.random() * 3) | 0,
+					scl: 0.85 + Math.random() * 0.35,
+					vy: 0.005 + Math.random() * 0.009,
 					vx: (Math.random() - 0.5) * 0.05,
 					life: 1,
-					decay: 0.004 + Math.random() * 0.006,
+					decay: 0.0008 + Math.random() * 0.0012,
 					ch: RECORDS[(Math.random() * RECORDS.length) | 0],
 				});
 			}
 		}
 
-		function stepParticles() {
+		function stepParticles(timeMs) {
 			for (var i = particles.length - 1; i >= 0; i--) {
 				var p = particles[i];
-				p.vy = Math.min(0.5, p.vy + 0.012);   // gravity
+				p.vy = Math.min(0.09, p.vy + 0.002);   // gentle gravity (slowed)
+				p.sway += 0.012;
+				p.x += p.vx + Math.sin(p.sway) * 0.014;
 				p.y += p.vy;
-				p.x += p.vx;
+				p.rot += p.va;
 				p.life -= p.decay;
 				if (p.y >= rows || p.life <= 0) particles.splice(i, 1);
 			}
-			// steady seep from the fault
-			if (particles.length < MAXP && Math.random() < 0.5) spawnParticles(2);
+			// occasional drip along the visible crack line
+			if (particles.length < MAXP && timeMs > nextSpawn) {
+				spawnParticles(1 + (Math.random() < 0.5 ? 1 : 0));
+				nextSpawn = timeMs + 1400 + Math.random() * 1200;
+			}
+		}
+
+		// SVG-drawn document sprites — wide sheets like real paperwork.
+		var docSprites = null;
+		function buildDocSprites() {
+			var scaleF = 1.15;
+			var DW = 3.4, DH = 2.3;
+			docSprites = [
+				{ kind: 'lined' },
+				{ kind: 'memo' },
+				{ kind: 'signed' },
+			].map(function (sp) {
+				var W = DW * cellW * scaleF, H = DH * cellH * scaleF;
+				var c = document.createElement('canvas');
+				c.width = Math.ceil(W * dpr);
+				c.height = Math.ceil(H * dpr);
+				var g = c.getContext('2d');
+				g.scale(dpr, dpr);
+				var m = W * 0.08, fold = W * 0.16;
+				g.strokeStyle = 'rgba(255,90,31,0.95)';
+				g.lineWidth = Math.max(1, W * 0.035);
+				g.lineJoin = 'round';
+				g.beginPath();
+				g.moveTo(m, m);
+				g.lineTo(W - m - fold, m);
+				g.lineTo(W - m, m + fold);
+				g.lineTo(W - m, H - m);
+				g.lineTo(m, H - m);
+				g.closePath();
+				g.stroke();
+				g.beginPath();
+				g.moveTo(W - m - fold, m);
+				g.lineTo(W - m, m + fold);
+				g.lineTo(W - m - fold, m + fold);
+				g.closePath();
+				g.stroke();
+				function rule(x1, y1, x2, y2, w) {
+					g.lineWidth = Math.max(1, (w || W * 0.028));
+					g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+				}
+				var x0 = m + W * 0.10, x2 = W - m - W * 0.08;
+				if (sp.kind === 'lined') {
+					rule(x0, H * 0.34, x2, H * 0.34);
+					rule(x0, H * 0.48, x2, H * 0.48);
+					rule(x0, H * 0.62, x2, H * 0.48 + H * 0.16);
+					rule(x0, H * 0.74, x2 - W * 0.14, H * 0.74);
+				} else if (sp.kind === 'memo') {
+					g.fillStyle = 'rgba(255,90,31,0.55)';
+					g.fillRect(x0, H * 0.12, W * 0.38, H * 0.09);
+					rule(x0, H * 0.38, x2, H * 0.38);
+					rule(x0, H * 0.54, x2 - W * 0.10, H * 0.54);
+					rule(x0, H * 0.70, x2, H * 0.70);
+				} else {
+					rule(x0, H * 0.30, x2, H * 0.30);
+					rule(x0, H * 0.46, x2 - W * 0.08, H * 0.46);
+					g.lineWidth = Math.max(1.4, W * 0.04);
+					g.beginPath();
+					g.moveTo(x0 + W * 0.04, H * 0.76);
+					g.bezierCurveTo(x0 + W * 0.14, H * 0.64, x0 + W * 0.26, H * 0.88, x0 + W * 0.38, H * 0.74);
+					g.bezierCurveTo(x0 + W * 0.45, H * 0.66, x0 + W * 0.55, H * 0.80, x0 + W * 0.62, H * 0.74);
+					g.stroke();
+				}
+				return { c: c, w: W, h: H };
+			});
 		}
 
 		function drawFrame(timeMs) {
@@ -269,18 +367,18 @@
 				}
 			}
 
-			// 4. records dripping out (drawn over the field)
+			// 4. documents drifting out of the logo crack
+			if (!docSprites) buildDocSprites();
 			for (var i = 0; i < particles.length; i++) {
 				var p = particles[i];
 				var fade = Math.max(0, Math.min(1, p.life * 1.4));
-				var bright = 0.5 + 0.5 * fade;
-				var rgb2 = [SIGNAL[0] * bright, SIGNAL[1] * bright, SIGNAL[2] * bright];
-				ctx.drawImage(sprite(p.ch, rgb2), p.x * cellW, p.y * cellH, cellW, cellH);
-				// faint drip trail
-				if (p.vy > 0.08) {
-					ctx.drawImage(sprite('·', [SIGNAL[0] * 0.3 * fade, SIGNAL[1] * 0.3 * fade, SIGNAL[2] * 0.3 * fade]),
-						p.x * cellW, (p.y - 1) * cellH, cellW, cellH);
-				}
+				var ds = docSprites[p.sprite];
+				ctx.save();
+				ctx.globalAlpha = Math.max(0, Math.min(1, fade * 1.15));
+				ctx.translate((p.x + 0.5) * cellW, (p.y + 0.5) * cellH);
+				ctx.rotate(p.rot);
+				ctx.drawImage(ds.c, -ds.w * p.scl / 2, -ds.h * p.scl / 2, ds.w * p.scl, ds.h * p.scl);
+				ctx.restore();
 			}
 		}
 
@@ -302,13 +400,13 @@
 		}
 
 		resize();
-		if (MOTION_OK) spawnParticles(24);
+		if (MOTION_OK) spawnParticles(4);
 
 		var raf = null, running = false, start = 0;
 		function loop(now) {
 			if (!running) return;
 			if (!start) start = now;
-			stepParticles();
+			stepParticles(now - start);
 			drawFrame(now - start);
 			raf = requestAnimationFrame(loop);
 		}

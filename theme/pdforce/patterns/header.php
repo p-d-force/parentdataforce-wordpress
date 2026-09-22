@@ -31,7 +31,7 @@
 	<!-- wp:navigation {"overlayBackgroundColor":"base","overlayTextColor":"contrast","layout":{"type":"flex","justifyContent":"right","flexWrap":"wrap"}} -->
 			<!-- wp:navigation-link {"label":"Data","url":"https://www.parentdataforce.com/data/"} /-->
 			<!-- wp:navigation-link {"label":"Districts","url":"https://www.parentdataforce.com/districts/"} /-->
-			<!-- wp:navigation-link {"label":"Current Focus","url":"https://www.parentdataforce.com/cases/"} /-->
+			<!-- wp:navigation-link {"label":"Projects","url":"https://www.parentdataforce.com/projects/"} /-->
 			<!-- wp:navigation-link {"label":"Articles","url":"https://www.parentdataforce.com/articles/"} /-->
 			<!-- wp:navigation-link {"label":"Appearances","url":"https://www.parentdataforce.com/appearances/"} /-->
 			<!-- wp:navigation-link {"label":"Resources","url":"https://www.parentdataforce.com/resources/"} /-->

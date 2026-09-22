@@ -72,6 +72,11 @@ ARTICLES = [
         "categories": [8],       # News
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article11_settlement_update.md",
+        "categories": [8],       # News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

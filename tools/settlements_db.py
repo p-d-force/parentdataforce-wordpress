@@ -8,11 +8,13 @@ snapshot-shaped JSON handoff mirror.
 
 Usage:
   python settlements_db.py init
+  python settlements_db.py migrate
   python settlements_db.py import-json <snapshot.json>
   python settlements_db.py add-district --name N --jurisdiction J --submitted YYYY-MM-DD [--note "…"]
   python settlements_db.py ack --name SUBSTR --date YYYY-MM-DD [--note "…"] [--ref REQNUM]
   python settlements_db.py note --name SUBSTR --text "…"
-  python settlements_db.py mark --name SUBSTR --status <enum>
+  python settlements_db.py mark --name SUBSTR --status <enum> [--clear-ack]
+  python settlements_db.py add-document --name SUBSTR --kind request|response|appeal (--file PATH | --url URL) [--filename F] [--label L]
   python settlements_db.py re-send --name SUBSTR
   python settlements_db.py stats
   python settlements_db.py publish [--status draft|publish]
@@ -24,6 +26,7 @@ import json
 import os
 import sqlite3
 import sys
+import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wp_api  # noqa: E402
@@ -31,7 +34,7 @@ import build_settlements_page as bsp  # noqa: E402
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settlements.sqlite")
 
-SCHEMA = """
+DISTRICTS_DDL = """
 CREATE TABLE IF NOT EXISTS districts (
     id INTEGER PRIMARY KEY,
     district TEXT NOT NULL UNIQUE,
@@ -40,14 +43,29 @@ CREATE TABLE IF NOT EXISTS districts (
     expected_initial_response TEXT,     -- ISO date, may be empty
     status TEXT NOT NULL CHECK (status IN
       ('awaiting_initial_response','acknowledged','records_received_review_pending',
-       'partial_production','complete_published','no_responsive_records','appeal_compliance')),
+       'partial_production','complete_published','no_responsive_records','appeal_compliance',
+       'routing_portal','response_fee_estimate','appeal_filed')),
     acknowledged TEXT,                  -- ISO date or NULL
     records_received INTEGER NOT NULL DEFAULT 0,
     public_note TEXT NOT NULL DEFAULT '',
     records_url TEXT,
     last_public_update TEXT NOT NULL,
-    excluded INTEGER NOT NULL DEFAULT 0
+    excluded INTEGER NOT NULL DEFAULT 0,
+    fee_estimate TEXT,                  -- public fee estimate, e.g. '$750' (NULL = none)
+    appeal_note TEXT                    -- public SPR-appeal narrative (NULL = none)
 );
+"""
+DOCUMENTS_DDL = """
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY,
+    district TEXT NOT NULL,             -- districts.district value
+    kind TEXT NOT NULL,                 -- 'request' | 'response' | 'appeal'
+    label TEXT NOT NULL,
+    url TEXT NOT NULL,
+    UNIQUE(district, kind)
+);
+"""
+SCHEMA = DISTRICTS_DDL + DOCUMENTS_DDL + """
 CREATE TABLE IF NOT EXISTS project_meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -57,8 +75,21 @@ CREATE TABLE IF NOT EXISTS project_meta (
 STATUS_VALUES = (
     "awaiting_initial_response", "acknowledged", "records_received_review_pending",
     "partial_production", "complete_published", "no_responsive_records",
-    "appeal_compliance",
+    "appeal_compliance", "routing_portal", "response_fee_estimate", "appeal_filed",
 )
+
+STATUS_LABELS = {
+    "awaiting_initial_response": "Active / awaiting initial response",
+    "acknowledged": "Acknowledged",
+    "records_received_review_pending": "Records received / review pending",
+    "partial_production": "Partial production",
+    "complete_published": "Complete — published",
+    "no_responsive_records": "No responsive records",
+    "appeal_compliance": "Appeal / compliance",
+    "routing_portal": "Routing / portal",
+    "response_fee_estimate": "Response / fee estimate",
+    "appeal_filed": "Appeal filed",
+}
 
 BOUNCE_FRAG = ("The initial send bounced on an incorrect address and was re-sent "
                "to the district's published records inbox.")
@@ -93,12 +124,14 @@ def import_json(args):
         cur = conn.execute(
             "INSERT OR IGNORE INTO districts (district, jurisdiction, submitted, "
             "expected_initial_response, status, acknowledged, records_received, "
-            "public_note, records_url, last_public_update) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            "public_note, records_url, last_public_update, fee_estimate, appeal_note) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (row["district"], row["jurisdiction"], row["submitted"],
              row.get("expected_initial_response"), row["status"],
              row.get("acknowledged"), 1 if row.get("records_received") else 0,
              row.get("public_note") or "", row.get("records_url"),
-             row.get("last_public_update") or row["submitted"]))
+             row.get("last_public_update") or row["submitted"],
+             row.get("fee_estimate"), row.get("appeal_note")))
         if cur.rowcount:
             seeded += 1
         else:
@@ -130,6 +163,83 @@ def _stamp(conn, row, fields):
                  list(fields.values()) + [row["id"]])
     conn.commit()
     conn.close()
+
+
+def cmd_migrate(args):
+    """Idempotent schema upgrade: relax the status CHECK (SQLite cannot ALTER
+    a CHECK, so districts is rebuilt) and add fee_estimate/appeal_note columns
+    plus the documents table."""
+    conn = open_db()
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(districts)").fetchall()}
+    has_docs = bool(conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'").fetchone())
+    if "fee_estimate" in cols and has_docs:
+        print("schema current: 10 statuses, fee_estimate/appeal_note, documents present")
+        conn.close()
+        return
+    if "fee_estimate" not in cols:
+        conn.execute("DROP TABLE IF EXISTS districts_new")
+        conn.executescript(DISTRICTS_DDL.replace(
+            "CREATE TABLE IF NOT EXISTS districts", "CREATE TABLE districts_new"))
+        conn.execute(
+            "INSERT INTO districts_new (id, district, jurisdiction, submitted, "
+            "expected_initial_response, status, acknowledged, records_received, "
+            "public_note, records_url, last_public_update, excluded) "
+            "SELECT id, district, jurisdiction, submitted, expected_initial_response, "
+            "status, acknowledged, records_received, public_note, records_url, "
+            "last_public_update, excluded FROM districts")
+        conn.execute("DROP TABLE districts")
+        conn.execute("ALTER TABLE districts_new RENAME TO districts")
+    if not has_docs:
+        conn.executescript(DOCUMENTS_DDL)
+    conn.commit()
+    conn.close()
+    print("migrated: status CHECK relaxed (routing_portal, response_fee_estimate, "
+          "appeal_filed), fee_estimate + appeal_note added, documents created")
+
+
+DEFAULT_DOC_LABELS = {
+    "request": "Original public records request (Sept. 21, 2026)",
+    "response": "District response (Sept. 23, 2026)",
+    "appeal": "SPR appeal as filed (Sept. 23, 2026)",
+}
+
+
+def cmd_add_document(args):
+    if args.kind not in ("request", "response", "appeal"):
+        sys.exit("--kind must be request, response, or appeal")
+    if bool(args.file) == bool(args.url):
+        sys.exit("pass exactly one of --file or --url")
+    conn = open_db()
+    row = _get_row(conn, args.name)
+    label = args.label or DEFAULT_DOC_LABELS[args.kind]
+    if args.url:
+        url = args.url
+    else:
+        filename = args.filename or os.path.basename(args.file)
+        base = os.path.splitext(filename)[0]
+        c = wp_api.client()
+        found = c.call(
+            "GET", f"/wp/v2/media?search={urllib.parse.quote(base)}&per_page=10", quiet=True)
+        url = None
+        for m in found:
+            src = m.get("source_url") or ""
+            if os.path.splitext(os.path.basename(src))[0] == base:
+                url = src
+                print(f"reusing existing media: {url}")
+                break
+        if url is None:
+            with open(args.file, "rb") as f:
+                data = f.read()
+            media = c.upload_media(filename, data)
+            url = media["source_url"]
+            print(f"uploaded media: {url}")
+    conn.execute(
+        "INSERT OR REPLACE INTO documents (district, kind, label, url) VALUES (?,?,?,?)",
+        (row["district"], args.kind, label, url))
+    conn.commit()
+    conn.close()
+    print(f"document linked: {row['district']} / {args.kind} -> {url}")
 
 
 def cmd_add_district(args):
@@ -179,7 +289,10 @@ def cmd_mark(args):
     conn = open_db()
     row = _get_row(conn, args.name)
     today = datetime.date.today().isoformat()
-    _stamp(conn, row, {"status": args.status, "last_public_update": today})
+    fields = {"status": args.status, "last_public_update": today}
+    if args.clear_ack:
+        fields["acknowledged"] = None
+    _stamp(conn, row, fields)
     print(f"{row['district']} -> {args.status}")
 
 
@@ -197,8 +310,13 @@ def cmd_stats(args):
     ack = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND status='acknowledged'").fetchone()["c"]
     awaiting = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND status='awaiting_initial_response'").fetchone()["c"]
     prod = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND records_url IS NOT NULL").fetchone()["c"]
+    routing = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND status='routing_portal'").fetchone()["c"]
+    appeal = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND "
+                          "(status LIKE 'appeal%' OR (appeal_note IS NOT NULL AND appeal_note != ''))").fetchone()["c"]
+    response = conn.execute("SELECT COUNT(*) c FROM districts WHERE excluded=0 AND status='response_fee_estimate'").fetchone()["c"]
     conn.close()
-    print(f"total={total}, acknowledged={ack}, awaiting={awaiting}, productions={prod}")
+    print(f"total={total}, acknowledged={ack}, awaiting={awaiting}, productions={prod}, "
+          f"routing={routing}, appeal={appeal}, response={response}")
 
 
 def _project_and_rows(conn):
@@ -221,8 +339,8 @@ def _project_and_rows(conn):
     return project, rows
 
 
-def _publish(project, rows, status):
-    content = bsp.build_blocks(project, rows)
+def _publish(project, rows, status, documents=()):
+    content = bsp.build_blocks(project, rows, documents=documents)
     c = wp_api.client()
     existing = c.call(
         "GET",
@@ -246,16 +364,20 @@ def _publish(project, rows, status):
 def cmd_publish(args):
     conn = open_db()
     project, rows = _project_and_rows(conn)
+    documents = [dict(d) for d in conn.execute(
+        "SELECT district, kind, label, url FROM documents ORDER BY district, kind").fetchall()]
     conn.close()
     # build_blocks expects the snapshot row shape (booleans, no excluded col).
     for r in rows:
         r["records_received"] = bool(r.pop("records_received"))
-    _publish(project, rows, args.status)
+    _publish(project, rows, args.status, documents)
 
 
 def cmd_export_json(args):
     conn = open_db()
     project, rows = _project_and_rows(conn)
+    documents = [dict(d) for d in conn.execute(
+        "SELECT district, kind, label, url FROM documents ORDER BY district, kind").fetchall()]
     conn.close()
     snap = {"project": project, "districts": [
         {
@@ -264,14 +386,17 @@ def cmd_export_json(args):
             "submitted": r["submitted"],
             "expected_initial_response": r["expected_initial_response"],
             "status": r["status"],
-            "status_label": {"awaiting_initial_response": "Active / awaiting initial response",
-                             "acknowledged": "Acknowledged"}.get(r["status"], r["status"]),
+            "status_label": STATUS_LABELS.get(r["status"], r["status"]),
             "acknowledged": r["acknowledged"],
             "records_received": bool(r["records_received"]),
             "public_note": r["public_note"],
             "records_url": r["records_url"],
             "last_public_update": r["last_public_update"],
+            "fee_estimate": r.get("fee_estimate"),
+            "appeal_note": r.get("appeal_note"),
         } for r in rows]}
+    if documents:
+        snap["documents"] = documents
     with open(args.path, "w", encoding="utf-8") as f:
         json.dump(snap, f, indent=1, ensure_ascii=False)
         f.write("\n")
@@ -296,11 +421,20 @@ def main():
     p.set_defaults(func=cmd_note)
     p = sub.add_parser("mark")
     p.add_argument("--name", required=True); p.add_argument("--status", required=True)
+    p.add_argument("--clear-ack", action="store_true", dest="clear_ack",
+                   help="also clear the acknowledged date (for downgrades)")
     p.set_defaults(func=cmd_mark)
+    p = sub.add_parser("add-document")
+    p.add_argument("--name", required=True); p.add_argument("--kind", required=True)
+    p.add_argument("--file"); p.add_argument("--url")
+    p.add_argument("--filename", help="destination filename for upload (default: basename of --file)")
+    p.add_argument("--label")
+    p.set_defaults(func=cmd_add_document)
     p = sub.add_parser("re-send")
     p.add_argument("--name", required=True)
     p.set_defaults(func=cmd_resend)
     sub.add_parser("stats").set_defaults(func=cmd_stats)
+    sub.add_parser("migrate").set_defaults(func=cmd_migrate)
     p = sub.add_parser("publish")
     p.add_argument("--status", choices=("draft", "publish"), default="publish")
     p.set_defaults(func=cmd_publish)

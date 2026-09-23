@@ -49,6 +49,9 @@ WHITELIST = (
 STATUS_BADGES = {
     "awaiting_initial_response": "Awaiting",
     "acknowledged": "Acknowledged",
+    "routing_portal": "Routing / portal",
+    "response_fee_estimate": "Response / fee estimate",
+    "appeal_filed": "Appeal filed",
     "records_received_review_pending": "Records received",
     "partial_production": "Partial",
     "complete_published": "Complete",
@@ -256,11 +259,13 @@ TEMPLATE_INSTRUCTIONS = (
     "Do not add student personally identifiable information merely to use this template.",
 )
 
-RECORDS_EMPTY_HEAD = "Records are on the way."
+RECORDS_EMPTY_HEAD = "Responses are beginning to arrive."
 RECORDS_EMPTY_BODY = (
-    "Requests are still in the initial response period. As productions arrive, "
-    "Parent Data Force will review them for privacy, organize them by district, "
-    "summarize what they show, and publish appropriate public copies here."
+    "Parent Data Force has received acknowledgments, routing confirmations, and "
+    "the first substantive fee-estimate response. No responsive settlement-record "
+    "production has been published yet. As records arrive, they will be reviewed "
+    "for privacy, indexed, summarized, and posted when appropriate. Appeals and "
+    "compliance disputes will also be tracked here."
 )
 
 LEGAL_PARA_1 = (
@@ -351,6 +356,12 @@ ENHANCEMENT_CSS = """<style>
 .pssr-copy{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;padding:.5rem 1rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
 .pssr-copy:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pssr-template pre{white-space:pre-wrap;word-break:break-word;margin:0;padding:1.25rem;max-height:32rem;overflow:auto;font-size:.8125rem;line-height:1.55;color:var(--pdf-paper,#f5f5f5)}
+.pssr-appeal{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.25rem;margin-top:1rem}
+.pssr-appeal-docs{font-size:.875rem}
+.pssr-badge--routing_portal{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
+.pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
+.pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 </style>"""
 
 ENHANCEMENT_JS = """<script>
@@ -501,10 +512,11 @@ def qa_group(question, answer):
     return group(inner, attrs=attrs)
 
 
-def build_blocks(project, rows):
+def build_blocks(project, rows, documents=()):
     total = len(rows)
     acknowledged = sum(1 for r in rows if r["status"] == "acknowledged")
     productions = sum(1 for r in rows if r.get("records_url"))
+    appeals = sum(1 for r in rows if (r.get("appeal_note") or r["status"].startswith("appeal")))
     updated = fmt_long(project.get("snapshot_date") or rows[0]["last_public_update"])
     contact = CONTACT
 
@@ -517,10 +529,10 @@ def build_blocks(project, rows):
         f'<div class="pdf-stat-lbl">districts requested</div></div>'
         f'<div class="pdf-stat"><div class="pdf-stat-num">{acknowledged}</div>'
         f'<div class="pdf-stat-lbl">acknowledged</div></div>'
+        f'<div class="pdf-stat"><div class="pdf-stat-num">{appeals}</div>'
+        f'<div class="pdf-stat-lbl">SPR appeal filed</div></div>'
         f'<div class="pdf-stat"><div class="pdf-stat-num">{productions}</div>'
         f'<div class="pdf-stat-lbl">reviewed productions posted yet</div></div>'
-        f'<div class="pdf-stat"><div class="pdf-stat-num pssr-stat-range">Sept. 18, 2021–present</div>'
-        f'<div class="pdf-stat-lbl">records window</div></div>'
         "</div></div>"
     )
     hero_inner = "\n".join([
@@ -607,13 +619,17 @@ def build_blocks(project, rows):
         note = esc(r["public_note"]) if r.get("public_note") else "—"
         data_district = attr(f"{r['district']} {r['jurisdiction']}".lower())
         badge = STATUS_BADGES[r["status"]]
+        status_cell = f'<span class="pssr-badge pssr-badge--{attr(r["status"])}">{esc(badge)}</span>'
+        if r.get("fee_estimate"):
+            status_cell += (f' <span class="pssr-badge pssr-badge--fee-estimate">'
+                            f'Fee estimate: {esc(r["fee_estimate"])}</span>')
         body_rows.append(
             f'<tr data-district="{data_district}" data-status="{attr(r["status"])}" '
             f'data-submitted="{attr(r["submitted"])}" data-expected="{attr(r["expected_initial_response"])}">'
             f"<td>{esc(r['district'])}</td>"
             f"<td>{fmt_short(r['submitted'])}</td>"
             f"<td>{fmt_short(r['expected_initial_response'])}</td>"
-            f'<td><span class="pssr-badge pssr-badge--{attr(r["status"])}">{esc(badge)}</span></td>'
+            f"<td>{status_cell}</td>"
             f"<td>{note}</td>"
             f"<td>—</td>"
             "</tr>"
@@ -639,6 +655,27 @@ def build_blocks(project, rows):
                    + ENHANCEMENT_JS),
     ])
     blocks.append(group(tracker_inner, attrs='{"anchor":"districts"}', anchor="districts"))
+
+    # 4b. Appeals & notable responses -----------------------------------------
+    appeal_rows = [r for r in rows if r.get("appeal_note")]
+    if appeal_rows:
+        order = {"request": 0, "response": 1, "appeal": 2}
+        docs_by_district = {}
+        for d in documents:
+            docs_by_district.setdefault(d["district"], []).append(d)
+        for dl in docs_by_district.values():
+            dl.sort(key=lambda d: order.get(d.get("kind"), 99))
+        appeal_items = []
+        for r in appeal_rows:
+            inner = h(3, f"{esc(r['district'])} — fee estimate appealed") + "\n" + p(esc(r["appeal_note"]))
+            docs = docs_by_district.get(r["district"])
+            if docs:
+                links = " · ".join(
+                    f'<a href="{attr(d["url"])}">{esc(d["label"])}</a>' for d in docs)
+                inner += "\n" + p(f"Source documents: {links}", class_name="pssr-appeal-docs")
+            appeal_items.append(group(inner, class_name="pssr-appeal"))
+        appeals_inner = h(2, "Appeals &amp; notable responses") + "\n" + "\n".join(appeal_items)
+        blocks.append(group(appeals_inner))
 
     # 5. Request-your-district CTA -------------------------------------------
     cta_inner = "\n".join([

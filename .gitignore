@@ -3,6 +3,8 @@ credentials.json
 .env
 *.key
 *.pem
+rest/ga_oauth_client_secret.json
+rest/ga_oauth_token.json
 
 # WordPress core mirror (regenerated via tools)
 wordpress-copy/

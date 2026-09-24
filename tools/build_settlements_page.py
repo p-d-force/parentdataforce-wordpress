@@ -370,7 +370,7 @@ ENHANCEMENT_CSS = """<style>
 .pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
 .pssr-status{min-width:10rem}
 .pssr-status .pssr-badge{margin:0 .35rem .35rem 0}
-.pssr-note{font-size:.8125rem;color:rgba(245,245,245,.85);min-width:16rem;max-width:26rem}
+.pssr-note{font-size:.875rem;color:rgba(245,245,245,.92);min-width:16rem;max-width:26rem}
 .pssr-docs{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
 .pssr-docs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
 .pssr-docs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
@@ -395,7 +395,7 @@ ENHANCEMENT_CSS = """<style>
 \t.pssr-table td.pssr-note{display:block;padding-top:.4rem}
 \t.pssr-table td.pssr-note::before{display:block;margin-bottom:.25rem}
 }
-.pssr-badge{display:inline-block;font-family:var(--pdf-mono,monospace);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-badge{display:inline-block;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-badge--acknowledged{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--records_received_review_pending,.pssr-badge--partial_production{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pssr-badge--complete_published,.pssr-badge--appeal_compliance{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}

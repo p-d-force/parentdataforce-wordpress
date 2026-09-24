@@ -61,6 +61,17 @@ STATUS_BADGES = {
 
 DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal"}
 
+# Reader-suggested queue for future standardized requests. Reader identities are
+# deliberately not recorded here (one requester asked for anonymity).
+REQUESTED_NEXT = (
+    "Auburn Public Schools",
+    "Chelmsford Public Schools",
+    "Haverhill Public Schools",
+    "Lawrence Public Schools",
+    "Newton Public Schools",
+    "North Andover Public Schools",
+)
+
 # Verbatim copy/paste template from
 # 03_PUBLIC_RECORDS_REQUEST_TEMPLATE.md (the fenced ```text block).
 REQUEST_TEMPLATE = r"""Hi,
@@ -759,6 +770,17 @@ def build_blocks(project, rows, documents=()):
             appeal_items.append(group(inner, class_name="pssr-appeal"))
         appeals_inner = h(2, "Appeals &amp; notable responses") + "\n" + "\n".join(appeal_items)
         blocks.append(group(appeals_inner))
+
+    # 4c. Requested next -------------------------------------------------------
+    requested_inner = "\n".join([
+        h(2, "Requested next"),
+        p("These districts have been suggested by readers and are queued for the "
+          "same standardized request. Check the Live District Tracker above and "
+          "this list before requesting a district — if it appears in either "
+          "place, there is no need to request it again."),
+        ul(REQUESTED_NEXT),
+    ])
+    blocks.append(group(requested_inner))
 
     # 5. Request-your-district CTA -------------------------------------------
     cta_inner = "\n".join([

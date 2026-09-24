@@ -8,6 +8,33 @@ The news site is a sub-install of the main org site at `parentdataforce.com`; th
 
 > **This repo deploys directly to production.** There is no staging environment. Scripts marked ⚠️ below mutate the live site over FTP/REST.
 
+## Memory (Mnemopi)
+
+Mnemopi is this project's memory backend (`~/.omp/agent/config.yml` → `memory.backend: mnemopi`;
+`per-project-tagged` scope, polyphonic + enhanced recall). Re-deriving a fact that is already stored is
+a defect — treat memory as the **first place to look and the last step before you yield**.
+
+- **`recall` before asking or searching.** Anything about prior decisions, conventions, or "how does X
+  work here" starts with `recall` — not a repo sweep, and never a question to the user that a previous
+  session already answered. `read memory://root` is the cross-project bank: machine-wide constraints
+  (Docker/WSL2 unusable, PHP/Composer paths, LM Studio serving rules) live there, not here.
+- **`reflect` to synthesise.** When the answer spans many memories ("why is it built this way", "what
+  did we decide about X", "what's the history here"), use `reflect`, not `recall`.
+- **`retain` the moment a fact turns durable** — not as a wrap-up step. For this repo that means:
+  live-site state that the repo does not record (published post ids/status, `permalink_structure` and
+  rewrite-rule repairs, theme slug ↔ pattern `Slug:` header contracts), the specific failure modes in
+  "Known failure modes" below as they are re-encountered, and REST/FTP quirks plus their workarounds.
+  Each entry self-contained (who/what/when/why + the evidence).
+- **Never retain credentials.** `rest/credentials.json` is the single secret source and is explicitly
+  *not* to be persisted — no host, user, or key in memory, ever.
+- **Dedupe before writing.** `recall` the topic first; if an entry exists, `memory_edit` it (`update`),
+  or **prefer `invalidate` over `forget`** — it preserves history.
+- **Never store** ephemeral task state, or anything the code already says plainly. The value is what
+  the code *can't* tell you.
+- **Repeatable procedure → `learn`/`manage_skill`** so it surfaces next session; bare facts → `retain`.
+- **Offload memory/embedding/git chores** to the `memory-worker` subagent via `task` (runs on the fast
+  local model) instead of spending default-model turns on them.
+
 ## Architecture & Data Flow
 
 Two independent planes, joined by the theme folder:
@@ -205,6 +232,8 @@ A `slug` in `theme/pdforce/styles/blocks/*.json` becomes the className `is-style
 | `- item` | `core/list` → `<ul>` with nested `core/list-item` |
 | `1. item` | `core/list {"ordered":true}` → `<ol>` with `core/list-item` |
 | `**bold**` / `*italic*` | `<strong>` / `<em>` |
+| `![alt](url)` standalone line | `core/image` → `<figure class="wp-block-image"><img …/></figure>` |
+| `![alt\|Caption](url)` standalone line | Same, plus `<figcaption class="wp-element-caption">` after the `<img>`; caption supports inline bold/italic |
 
 Public API: `convert(md_text) -> (title, dek, body)`, `slugify(title)`, `inline(text)`, `escape(text)`.
 

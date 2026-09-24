@@ -8,6 +8,10 @@ Pure stdlib. Supports exactly the subset used by the "sped news" articles:
   - Paragraphs                  -> core/paragraph
   - `---`                       -> core/separator (is-style-wide)
   - `- item` / `1. item`        -> core/list
+  - `![alt|Caption](url)`       -> core/image -> <figure class="wp-block-image">
+                                  + optional <figcaption class="wp-element-caption">
+                                  ("|" splits alt from caption; caption supports
+                                  inline bold/italic; url on its own line)
   - Inline **bold** / *italic*  -> <strong> / <em>
   - Inline [text](url)          -> <a href> (used sparingly, e.g. linking
                                   articles to the project page)
@@ -23,6 +27,7 @@ H_RE = re.compile(r"^(#{2,3})\s+(.*)$")
 HR_RE = re.compile(r"^---+$")
 UL_RE = re.compile(r"^-\s+(.*)$")
 OL_RE = re.compile(r"^\d+\.\s+(.*)$")
+IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^()\s]+)\)$")
 
 
 def escape(text):
@@ -146,6 +151,21 @@ def convert(md_text):
                 f'<h{level} class="wp-block-heading">{inline(h.group(2))}</h{level}>\n'
                 "<!-- /wp:heading -->"
             )
+            k += 1
+            continue
+
+        img = IMG_RE.match(line)
+        if img:
+            flush_para()
+            alt, url = img.group(1), img.group(2)
+            caption = None
+            if "|" in alt:
+                alt, caption = alt.split("|", 1)
+            fig = f'<figure class="wp-block-image"><img src="{escape(url)}" alt="{escape(alt)}"/>'
+            if caption:
+                fig += f'<figcaption class="wp-element-caption">{inline(caption)}</figcaption>'
+            fig += "</figure>"
+            out.append(f"<!-- wp:image -->\n{fig}\n<!-- /wp:image -->")
             k += 1
             continue
 

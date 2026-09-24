@@ -12,11 +12,15 @@ Credentials come from rest/credentials.json (gitignored). Never commit secrets.
 Usage:
   python tools/deploy_theme.py            # upload changed theme files
   python tools/deploy_theme.py --dry-run  # list what would be uploaded
+  python tools/deploy_theme.py --verify   # dual-plane GA + theme checks, no upload
 """
+import base64
 import ftplib
 import json
 import os
 import sys
+import urllib.request
+import urllib.error
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -62,6 +66,74 @@ def collect():
     return files
 
 
+BASE_URL = "https://www.parentdataforce.com"
+GA_ID = "G-BVQTKPYBG2"
+REST_QUERY = "/wp-json/wp/v2/posts?per_page=1&status=publish&_fields=id,link"
+
+
+def http_get(url, auth=None):
+    """GET url, follow redirects, return (status, body). HTTPError -> (code, body)."""
+    headers = {"User-Agent": "pdforce-deploy-verify/1.0"}
+    if auth:
+        headers["Authorization"] = "Basic " + auth
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status, r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode("utf-8", "replace")
+
+
+def latest_post_url():
+    """Public REST: newest published post's permalink. Raises on failure."""
+    status, body = http_get(BASE_URL + REST_QUERY)
+    if status in (401, 403):
+        with open(os.path.join(ROOT, "rest", "credentials.json"), encoding="utf-8") as f:
+            creds = json.load(f)
+        token = base64.b64encode(
+            f"{creds['username']}:{creds['application_password']}".encode()
+        ).decode()
+        status, body = http_get(BASE_URL + REST_QUERY, auth=token)
+    if status != 200:
+        raise RuntimeError(f"REST posts returned HTTP {status}")
+    posts = json.loads(body)
+    if not posts:
+        raise RuntimeError("REST posts returned no published posts")
+    return posts[0]["link"]
+
+
+def verify():
+    failures = []
+    # Static pages get GA via /public_html/includes/head.php; only the GA marker applies.
+    static_required = [GA_ID]
+    # WP-served pages render the theme (body class) and inherit the GA hook.
+    wp_required = [GA_ID, "wp-theme-pdforce"]
+    try:
+        latest = latest_post_url()
+    except Exception as exc:  # REST failure surfaces as a check failure, never a traceback
+        failures.append(f"latest-post: {exc}")
+        latest = None
+    urls = [
+        ("home", BASE_URL + "/", wp_required),
+        ("donate", BASE_URL + "/donate/", wp_required),
+        ("about", BASE_URL + "/about/", static_required),
+        ("projects", BASE_URL + "/projects/", static_required),
+    ]
+    if latest:
+        urls.insert(1, ("latest-post", latest, wp_required))
+    for label, url, required in urls:
+        status, body = http_get(url)
+        missing = [m for m in required if m not in body]
+        if status != 200 or missing:
+            failures.append(f"{label} ({url}): HTTP {status}, missing {missing}")
+        else:
+            print(f"  {label}: OK ({url})")
+    print("verify: all checks passed" if not failures else "verify: FAILED")
+    for f in failures:
+        print("  FAIL", f)
+    return not failures
+
+
 def main():
     force = "--all" in sys.argv
     dry = "--dry-run" in sys.argv
@@ -94,4 +166,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--verify" in sys.argv:
+        sys.exit(0 if verify() else 1)
     main()

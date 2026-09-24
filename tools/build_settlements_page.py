@@ -59,6 +59,8 @@ STATUS_BADGES = {
     "appeal_compliance": "Appeal / compliance",
 }
 
+DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal"}
+
 # Verbatim copy/paste template from
 # 03_PUBLIC_RECORDS_REQUEST_TEMPLATE.md (the fenced ```text block).
 REQUEST_TEMPLATE = r"""Hi,
@@ -335,15 +337,53 @@ FOOTER_CTA = (
 )
 
 ENHANCEMENT_CSS = """<style>
+/* Student Settlement Records — page-scoped styles. Tokens from pdf-design.css. */
 .pssr-hero{padding-top:2.5rem}
 .pssr-stat-range{font-size:1.125rem;letter-spacing:.01em;line-height:1.25;padding-top:.45rem}
-.pssr-controls{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:0 0 1.25rem}
-.pssr-search{flex:1 1 15rem;min-width:0;background:var(--pdf-ink-1,#161616);border:1px solid var(--pdf-line,#2a2a2a);color:var(--pdf-paper,#f5f5f5);font-family:var(--pdf-mono,monospace);font-size:.875rem;padding:.625rem .875rem;border-radius:999px}
+.pssr-updated{margin:.25rem 0 0;color:var(--pdf-mid,#a0a0a0);font-size:.8125rem}
+.pssr-controls{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin:0 0 .75rem}
+.pssr-search{flex:1 1 15rem;min-width:0;max-width:26rem;background:var(--pdf-ink-1,#161616);border:1px solid var(--pdf-line,#2a2a2a);color:var(--pdf-paper,#f5f5f5);font-family:var(--pdf-mono,monospace);font-size:.875rem;padding:.625rem .875rem;border-radius:999px}
 .pssr-search:focus{outline:2px solid var(--pdf-signal,#ff5a1f);outline-offset:1px}
 .pssr-tabs{margin:0;padding:0;max-width:none}
+.pssr-count{margin:0 0 .9rem;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
 .pssr-table{overflow-x:auto}
-.pssr-table table{min-width:44rem;font-size:.875rem}
-.pssr-table th{font-family:var(--pdf-mono,monospace);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
+.pssr-table table{border-collapse:collapse;font-size:.9375rem;line-height:1.4;margin:0}
+.pssr-table table,.pssr-table thead,.pssr-table tbody,.pssr-table tr,.pssr-table td,.pssr-table th{border:0}
+.pssr-table thead th{padding:.75rem;font-family:var(--pdf-mono,monospace);font-size:.6875rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);text-align:left;vertical-align:bottom;border-bottom:1px solid var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-table tbody td{padding:.7rem .75rem;border-bottom:1px solid var(--pdf-line,#2a2a2a);vertical-align:top}
+.pssr-table tbody tr:nth-child(even) td{background:rgba(245,245,245,.03)}
+.pssr-table tbody tr:hover td{background:var(--pdf-ink-1,#161616)}
+.pssr-district{font-weight:600;min-width:12rem}
+.pssr-timeline{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pssr-timeline .pssr-expected{color:var(--pdf-paper,#f5f5f5)}
+.pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
+.pssr-status{min-width:10rem}
+.pssr-status .pssr-badge{margin:0 .35rem .35rem 0}
+.pssr-note{font-size:.8125rem;color:rgba(245,245,245,.85);min-width:16rem;max-width:26rem}
+.pssr-docs{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
+.pssr-docs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
+.pssr-docs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
+.pssr-docsep{color:var(--pdf-line,#2a2a2a);padding:0 .3rem}
+@media (min-width:900px){
+\t.pssr-table{overflow:visible}
+\t.pssr-table thead th{position:sticky;top:0;z-index:2;background:var(--pdf-ink-0,#0b0b0b)}
+}
+@media (max-width:719px){
+\t.pssr-controls{flex-direction:column;align-items:stretch}
+\t.pssr-search{flex-basis:auto;max-width:none}
+\t.pssr-table{overflow:visible}
+\t.pssr-table table,.pssr-table tbody,.pssr-table tr,.pssr-table td{display:block;width:100%}
+\t.pssr-table thead{display:none}
+\t.pssr-table tbody tr{border:1px solid var(--pdf-line,#2a2a2a);border-radius:10px;background:var(--pdf-ink-1,#161616);padding:.4rem 1rem .55rem;margin:.75rem 0}
+\t.pssr-table tbody tr:nth-child(even) td{background:transparent}
+\t.pssr-table tbody tr:hover td{background:transparent}
+\t.pssr-table tbody td{border:0;padding:.34rem 0;display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+\t.pssr-table tbody td::before{content:attr(data-label);flex:0 0 auto;font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);padding-top:.15em}
+\t.pssr-table td.pssr-district{display:block;font-size:1rem;padding:.3rem 0 .45rem}
+\t.pssr-table td.pssr-district::before{content:none}
+\t.pssr-table td.pssr-note{display:block;padding-top:.4rem}
+\t.pssr-table td.pssr-note::before{display:block;margin-bottom:.25rem}
+}
 .pssr-badge{display:inline-block;font-family:var(--pdf-mono,monospace);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-badge--acknowledged{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--records_received_review_pending,.pssr-badge--partial_production{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
@@ -362,6 +402,7 @@ ENHANCEMENT_CSS = """<style>
 .pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
 .pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
+@media (max-width:719px){.pssr-badge{white-space:normal}}
 </style>"""
 
 ENHANCEMENT_JS = """<script>
@@ -372,7 +413,22 @@ ENHANCEMENT_JS = """<script>
 	var search = doc.querySelector(".pssr-search");
 	var chips = Array.prototype.slice.call(doc.querySelectorAll(".pssr-chip"));
 	var empty = doc.querySelector(".pssr-empty");
+	var count = doc.querySelector(".pssr-count");
 	var rows = table ? Array.prototype.slice.call(table.querySelectorAll("tbody tr")) : [];
+	var today = new Date();
+	today.setHours(0, 0, 0, 0);
+	rows.forEach(function (tr) {
+		if (tr.getAttribute("data-status") !== "awaiting_initial_response") { return; }
+		var exp = tr.getAttribute("data-expected");
+		if (!exp) { return; }
+		if (today > new Date(exp + "T00:00:00")) {
+			var span = tr.querySelector(".pssr-expected");
+			if (span) {
+				span.classList.add("is-overdue");
+				tr.title = "Past the expected initial-response date";
+			}
+		}
+	});
 	var status = "all";
 	function apply() {
 		if (!rows.length) { return; }
@@ -385,8 +441,11 @@ ENHANCEMENT_JS = """<script>
 			if (ok) { shown++; }
 		});
 		if (empty) { empty.hidden = shown > 0; }
+		if (count) { count.hidden = false; count.textContent = "Showing " + shown + " of " + rows.length + " districts"; }
 	}
 	if (search) { search.addEventListener("input", apply); }
+	// Initial pass: fill the visible count (rows already render server-side).
+	apply();
 	chips.forEach(function (chip) {
 		chip.addEventListener("click", function () {
 			status = chip.getAttribute("data-status") || "all";
@@ -611,9 +670,17 @@ def build_blocks(project, rows, documents=()):
     )
 
     head_cells = (
-        "<tr><th>District</th><th>Submitted</th><th>Expected initial response</th>"
-        "<th>Status</th><th>Latest public note</th><th>Records</th></tr>"
+        "<tr>"
+        '<th scope="col">District</th>'
+        '<th scope="col">Timeline</th>'
+        '<th scope="col">Status</th>'
+        '<th scope="col">Latest public note</th>'
+        '<th scope="col">Documents</th>'
+        "</tr>"
     )
+    docs_by_district = {}
+    for d in documents:
+        docs_by_district.setdefault(d["district"], []).append(d)
     body_rows = []
     for r in rows:
         note = esc(r["public_note"]) if r.get("public_note") else "—"
@@ -623,20 +690,35 @@ def build_blocks(project, rows, documents=()):
         if r.get("fee_estimate"):
             status_cell += (f' <span class="pssr-badge pssr-badge--fee-estimate">'
                             f'Fee estimate: {esc(r["fee_estimate"])}</span>')
+        s_y, s_m, s_d = (int(x) for x in r["submitted"].split("-"))
+        e_y, e_m, e_d = (int(x) for x in r["expected_initial_response"].split("-"))
+        if s_y == e_y:
+            timeline_head = f"{MONTHS_SHORT[s_m - 1]} {s_d} → "
+            timeline_tail = f"{MONTHS_SHORT[e_m - 1]} {e_d}, {e_y}"
+        else:
+            timeline_head = fmt_short(r["submitted"]) + " → "
+            timeline_tail = fmt_short(r["expected_initial_response"])
+        docs = docs_by_district.get(r["district"])
+        if docs:
+            docs_cell = ' <span class="pssr-docsep">·</span> '.join(
+                f'<a href="{attr(d["url"])}" title="{attr(d["label"])}">{DOC_KIND_LABELS[d["kind"]]}</a>'
+                for d in docs)
+        else:
+            docs_cell = "—"
         body_rows.append(
             f'<tr data-district="{data_district}" data-status="{attr(r["status"])}" '
             f'data-submitted="{attr(r["submitted"])}" data-expected="{attr(r["expected_initial_response"])}">'
-            f"<td>{esc(r['district'])}</td>"
-            f"<td>{fmt_short(r['submitted'])}</td>"
-            f"<td>{fmt_short(r['expected_initial_response'])}</td>"
-            f"<td>{status_cell}</td>"
-            f"<td>{note}</td>"
-            f"<td>—</td>"
+            f'<td class="pssr-district" data-label="District">{esc(r["district"])}</td>'
+            f'<td class="pssr-timeline" data-label="Timeline">'
+            f'<span>{timeline_head}</span><span class="pssr-expected">{timeline_tail}</span></td>'
+            f'<td class="pssr-status" data-label="Status">{status_cell}</td>'
+            f'<td class="pssr-note" data-label="Latest note">{note}</td>'
+            f'<td class="pssr-docs" data-label="Documents">{docs_cell}</td>'
             "</tr>"
         )
     table_block = (
-        '<!-- wp:table {"className":"pssr-table"} -->\n'
-        '<figure class="wp-block-table pssr-table"><table>'
+        '<!-- wp:table {"align":"wide","className":"pssr-table"} -->\n'
+        '<figure class="wp-block-table alignwide pssr-table"><table>'
         f"<thead>{head_cells}</thead>"
         f"<tbody>{''.join(body_rows)}</tbody>"
         "</table></figure>\n"
@@ -646,15 +728,16 @@ def build_blocks(project, rows, documents=()):
     tracker_inner = "\n".join([
         h(2, "Live district tracker"),
         p(f"{total} districts have received the request. Use the search box or the "
-          "status filters to narrow the table. Every row renders without JavaScript; "
-          "the controls only enhance it."),
+          "status filters to narrow the table."),
         html_block(controls),
+        html_block('<p class="pssr-count" hidden aria-live="polite"></p>'),
         table_block,
         html_block(ENHANCEMENT_CSS
                    + '\n<p class="pssr-empty" hidden>No districts match that filter.</p>\n'
                    + ENHANCEMENT_JS),
     ])
-    blocks.append(group(tracker_inner, attrs='{"anchor":"districts"}', anchor="districts"))
+    blocks.append(group(tracker_inner, attrs='{"align":"wide","className":"pssr-tracker"}',
+                        class_name="pssr-tracker alignwide", anchor="districts"))
 
     # 4b. Appeals & notable responses -----------------------------------------
     appeal_rows = [r for r in rows if r.get("appeal_note")]

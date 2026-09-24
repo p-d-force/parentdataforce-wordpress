@@ -113,29 +113,55 @@ if ( ! function_exists( 'pdforce_enqueue_design_assets' ) ) :
 endif;
 add_action( 'wp_enqueue_scripts', 'pdforce_enqueue_design_assets' );
 
-if ( ! function_exists( 'pdforce_google_analytics' ) ) :
+if ( ! function_exists( 'pdforce_enqueue_cta_events' ) ) :
 	/**
-	 * Outputs the GA4 snippet so WordPress pages share the analytics property
-	 * used across parentdataforce.com. Prints on every public view.
+	 * Enqueues the click-event tracking script on every public view. The script
+	 * self-scopes to main-content clicks (header/nav/footer excluded) and fires
+	 * gtag('event', 'cta_click', ...) against whatever configs the page has.
 	 *
-	 * @since Parent Data Force 1.7
+	 * @since Parent Data Force 1.9
 	 *
 	 * @return void
 	 */
-	function pdforce_google_analytics() {
-		$ga_id = 'G-BVQTKPYBG2';
-		?>
-		<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr( $ga_id ); ?>"></script>
-		<script>
-			window.dataLayer = window.dataLayer || [];
-			function gtag(){dataLayer.push(arguments);}
-			gtag('js', new Date());
-			gtag('config', '<?php echo esc_js( $ga_id ); ?>');
-		</script>
-		<?php
+	function pdforce_enqueue_cta_events() {
+		wp_enqueue_script(
+			'pdforce-cta-events',
+			get_theme_file_uri( 'assets/js/cta-events.js' ),
+			array(),
+			wp_get_theme()->get( 'Version' ),
+			true
+		);
 	}
 endif;
-add_action( 'wp_head', 'pdforce_google_analytics', 20 );
+add_action( 'wp_enqueue_scripts', 'pdforce_enqueue_cta_events' );
+
+if ( ! function_exists( 'pdforce_legacy_news_redirect' ) ) :
+	/**
+	 * 301s the legacy /news/ paths that Apache cannot reach: the bare /news/
+	 * directory (now handled by the WP front controller) and /news/wp-json*
+	 * (REST lives at the site root since home moved there). WP-internal
+	 * file paths (wp-admin, wp-content, wp-login...) are left alone.
+	 *
+	 * @since Parent Data Force 1.8
+	 *
+	 * @return void
+	 */
+	function pdforce_legacy_news_redirect() {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
+		if ( '' === $uri ) {
+			return;
+		}
+		if ( '/news/' === $uri || '/news' === $uri ) {
+			wp_safe_redirect( 'https://www.parentdataforce.com/', 301 );
+			exit;
+		}
+		if ( 0 === strpos( $uri, '/news/wp-json' ) ) {
+			wp_safe_redirect( 'https://www.parentdataforce.com' . substr( $uri, strlen( '/news' ) ), 301 );
+			exit;
+		}
+	}
+endif;
+add_action( 'template_redirect', 'pdforce_legacy_news_redirect' );
 
 if ( ! function_exists( 'pdforce_block_styles' ) ) :
 	/**

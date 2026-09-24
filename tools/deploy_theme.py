@@ -68,6 +68,7 @@ def collect():
 
 BASE_URL = "https://www.parentdataforce.com"
 GA_ID = "G-BVQTKPYBG2"
+SITEKIT_TAG = "GT-MRQDH926"
 REST_QUERY = "/wp-json/wp/v2/posts?per_page=1&status=publish&_fields=id,link"
 
 
@@ -104,10 +105,10 @@ def latest_post_url():
 
 def verify():
     failures = []
-    # Static pages get GA via /public_html/includes/head.php; only the GA marker applies.
+    # WP pages: Site Kit owns GA tagging; assert Site Kit's Google tag + theme body class.
+    wp_required = [SITEKIT_TAG, "wp-theme-pdforce"]
+    # Static pages: GA via /public_html/includes/head.php (G- snippet).
     static_required = [GA_ID]
-    # WP-served pages render the theme (body class) and inherit the GA hook.
-    wp_required = [GA_ID, "wp-theme-pdforce"]
     try:
         latest = latest_post_url()
     except Exception as exc:  # REST failure surfaces as a check failure, never a traceback

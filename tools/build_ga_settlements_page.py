@@ -34,6 +34,19 @@ MAILTO_REQUEST = (
     "&body=District%20name%3A%0ATown%2FCity%3A%0A"
 )
 
+# Secondary GA4 property for Georgia-only reporting (property
+# properties/555935802, data stream 15844598244, created 2026-09-25). The
+# primary tag still loads site-wide: Site Kit prints GT-MRQDH926 (routed into
+# the primary G-BVQTKPYBG2 stream) from wp_head on every WP page.
+GA_SECONDARY_TAG = "G-MQ7L7PFFE8"
+GA_SNIPPET = f"""<script async src="https://www.googletagmanager.com/gtag/js?id={GA_SECONDARY_TAG}"></script>
+<script>
+\twindow.dataLayer = window.dataLayer || [];
+\tfunction gtag(){{dataLayer.push(arguments);}}
+\tgtag('js', new Date());
+\tgtag('config', '{GA_SECONDARY_TAG}');
+</script>"""
+
 # Only these tracker fields may ever reach the public page (see
 # 06_DATA_MODEL_AND_SYNC_RULES.md). Everything else is internal.
 WHITELIST = (
@@ -585,6 +598,9 @@ def build_blocks(project, rows, documents=()):
     contact = CONTACT
 
     blocks = []
+
+    # 0. Secondary GA4 tag (Georgia-only property) -------------------------
+    blocks.append(html_block(GA_SNIPPET))
 
     # 1. Hero -------------------------------------------------------------
     stats = (

@@ -43,6 +43,10 @@ WHITELIST = (
     "status_label",
     "public_note",
     "records_url",
+    "acknowledged",
+    "fee_estimate",
+    "fee_hours",
+    "records_count",
     "last_public_update",
 )
 
@@ -59,7 +63,8 @@ STATUS_BADGES = {
     "appeal_compliance": "Appeal / compliance",
 }
 
-DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal"}
+DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal",
+                   "records": "Records"}
 
 # Reader-suggested queue for future standardized requests. Reader identities are
 # deliberately not recorded here (one requester asked for anonymity).
@@ -372,6 +377,11 @@ ENHANCEMENT_CSS = """<style>
 .pssr-status .pssr-badge{margin:0 .35rem .35rem 0}
 .pssr-note{font-size:.875rem;color:rgba(245,245,245,.92);min-width:16rem;max-width:26rem}
 .pssr-docs{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
+.pssr-acked{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pssr-fee{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
+.pssr-records{font-size:.8125rem;white-space:nowrap}
+.pssr-records a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
+.pssr-records a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
 .pssr-docs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
 .pssr-docs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
 .pssr-docsep{color:var(--pdf-line,#2a2a2a);padding:0 .3rem}
@@ -602,7 +612,7 @@ def build_blocks(project, rows, documents=()):
         f'<div class="pdf-stat"><div class="pdf-stat-num">{appeals}</div>'
         f'<div class="pdf-stat-lbl">SPR appeal filed</div></div>'
         f'<div class="pdf-stat"><div class="pdf-stat-num">{productions}</div>'
-        f'<div class="pdf-stat-lbl">reviewed productions posted yet</div></div>'
+        f'<div class="pdf-stat-lbl">reviewed productions published</div></div>'
         "</div></div>"
     )
     hero_inner = "\n".join([
@@ -684,6 +694,9 @@ def build_blocks(project, rows, documents=()):
         "<tr>"
         '<th scope="col">District</th>'
         '<th scope="col">Timeline</th>'
+        '<th scope="col">Acknowledged</th>'
+        '<th scope="col">Fee</th>'
+        '<th scope="col">Records</th>'
         '<th scope="col">Status</th>'
         '<th scope="col">Latest public note</th>'
         '<th scope="col">Documents</th>'
@@ -692,6 +705,9 @@ def build_blocks(project, rows, documents=()):
     docs_by_district = {}
     for d in documents:
         docs_by_district.setdefault(d["district"], []).append(d)
+    doc_order = {"request": 0, "response": 1, "records": 2, "appeal": 3}
+    for dl in docs_by_district.values():
+        dl.sort(key=lambda d: doc_order.get(d.get("kind"), 99))
     body_rows = []
     for r in rows:
         note = esc(r["public_note"]) if r.get("public_note") else "—"
@@ -701,6 +717,26 @@ def build_blocks(project, rows, documents=()):
         if r.get("fee_estimate"):
             status_cell += (f' <span class="pssr-badge pssr-badge--fee-estimate">'
                             f'Fee estimate: {esc(r["fee_estimate"])}</span>')
+        ack_cell = fmt_short(r["acknowledged"]) if r.get("acknowledged") else "—"
+        if r.get("fee_estimate"):
+            if r.get("fee_hours"):
+                hours = int(r["fee_hours"]) if float(r["fee_hours"]).is_integer() else r["fee_hours"]
+                fee_cell = f"{esc(r['fee_estimate'])} · {hours} hrs"
+            else:
+                fee_cell = esc(r["fee_estimate"])
+        elif r["status"] in ("records_received_review_pending", "partial_production",
+                             "complete_published", "no_responsive_records"):
+            fee_cell = None
+        else:
+            fee_cell = "—"
+        if r.get("records_url"):
+            count_prefix = f'{r["records_count"]} · ' if r.get("records_count") else ""
+            records_cell = (f'{count_prefix}<a href="{attr(r["records_url"])}" '
+                            f'title="Published production (PII-reviewed)">Published</a>')
+        elif r.get("records_count"):
+            records_cell = str(r["records_count"])
+        else:
+            records_cell = "—"
         s_y, s_m, s_d = (int(x) for x in r["submitted"].split("-"))
         e_y, e_m, e_d = (int(x) for x in r["expected_initial_response"].split("-"))
         if s_y == e_y:
@@ -722,6 +758,9 @@ def build_blocks(project, rows, documents=()):
             f'<td class="pssr-district" data-label="District">{esc(r["district"])}</td>'
             f'<td class="pssr-timeline" data-label="Timeline">'
             f'<span>{timeline_head}</span><span class="pssr-expected">{timeline_tail}</span></td>'
+            f'<td class="pssr-acked" data-label="Acknowledged">{ack_cell}</td>'
+            f'<td class="pssr-fee" data-label="Fee">{fee_cell if fee_cell is not None else ""}</td>'
+            f'<td class="pssr-records" data-label="Records">{records_cell}</td>'
             f'<td class="pssr-status" data-label="Status">{status_cell}</td>'
             f'<td class="pssr-note" data-label="Latest note">{note}</td>'
             f'<td class="pssr-docs" data-label="Documents">{docs_cell}</td>'
@@ -809,11 +848,33 @@ def build_blocks(project, rows, documents=()):
     blocks.append(group(template_inner, attrs='{"anchor":"template"}', anchor="template"))
 
     # 7. Records library -----------------------------------------------------
-    records_inner = "\n".join([
-        h(2, "Records library"),
-        h(3, RECORDS_EMPTY_HEAD),
-        p(RECORDS_EMPTY_BODY),
-    ])
+    library_rows = [r for r in rows if r.get("records_url")]
+    if library_rows:
+        lib_items = []
+        for r in library_rows:
+            inner = "\n".join([
+                h(3, f"{esc(r['district'])} — first production published"),
+                p(f"Received Sept. 25, 2026 from the district with no fee and no payment "
+                  f"demand. The production totals 45 pages of responsive documents."),
+                p("The published copy is the version reviewed by Parent Data Force: "
+                  "student personally identifiable information was checked and redacted "
+                  "before posting. The district's own file is not published."),
+                p(f'One item deserves attention: the production included a staff retirement '
+                  f'agreement, although the request expressly excluded staff and employment '
+                  f'records. It is published as received in the district\'s production, and '
+                  f'is flagged here for transparency.'),
+                p(f'Download the reviewed production: '
+                  f'<a href="{attr(r["records_url"])}">PII-reviewed public copy (PDF)</a>',
+                  class_name="pssr-appeal-docs"),
+            ])
+            lib_items.append(group(inner, class_name="pssr-appeal"))
+        records_inner = h(2, "Records library") + "\n" + "\n".join(lib_items)
+    else:
+        records_inner = "\n".join([
+            h(2, "Records library"),
+            h(3, RECORDS_EMPTY_HEAD),
+            p(RECORDS_EMPTY_BODY),
+        ])
     blocks.append(group(records_inner, attrs='{"anchor":"records"}', anchor="records"))
 
     # 8. What happens when records arrive ---------------------------------------

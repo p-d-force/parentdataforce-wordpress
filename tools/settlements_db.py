@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS districts (
     last_public_update TEXT NOT NULL,
     excluded INTEGER NOT NULL DEFAULT 0,
     fee_estimate TEXT,                  -- public fee estimate, e.g. '$750' (NULL = none)
+    fee_hours REAL,                     -- hours claimed in a fee itemization (NULL = none)
+    records_count INTEGER,              -- distinct responsive documents produced (NULL = unknown)
     appeal_note TEXT                    -- public SPR-appeal narrative (NULL = none)
 );
 """
@@ -173,8 +175,9 @@ def cmd_migrate(args):
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(districts)").fetchall()}
     has_docs = bool(conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'").fetchone())
-    if "fee_estimate" in cols and has_docs:
-        print("schema current: 10 statuses, fee_estimate/appeal_note, documents present")
+    if "fee_estimate" in cols and "fee_hours" in cols and "records_count" in cols and has_docs:
+        print("schema current: 10 statuses, fee_estimate/fee_hours/records_count/"
+              "appeal_note, documents present")
         conn.close()
         return
     if "fee_estimate" not in cols:
@@ -192,22 +195,27 @@ def cmd_migrate(args):
         conn.execute("ALTER TABLE districts_new RENAME TO districts")
     if not has_docs:
         conn.executescript(DOCUMENTS_DDL)
+    if "fee_hours" not in cols:
+        conn.execute("ALTER TABLE districts ADD COLUMN fee_hours REAL")
+    if "records_count" not in cols:
+        conn.execute("ALTER TABLE districts ADD COLUMN records_count INTEGER")
     conn.commit()
     conn.close()
-    print("migrated: status CHECK relaxed (routing_portal, response_fee_estimate, "
-          "appeal_filed), fee_estimate + appeal_note added, documents created")
+    print("migrated: schema brought current (statuses, fee_estimate/fee_hours/"
+          "records_count/appeal_note, documents)")
 
 
 DEFAULT_DOC_LABELS = {
     "request": "Original public records request (Sept. 21, 2026)",
     "response": "District response (Sept. 23, 2026)",
     "appeal": "SPR appeal as filed (Sept. 23, 2026)",
+    "records": "Production received Sept. 25, 2026 — Parent Data Force PII-reviewed public copy (45 pp.)",
 }
 
 
 def cmd_add_document(args):
-    if args.kind not in ("request", "response", "appeal"):
-        sys.exit("--kind must be request, response, or appeal")
+    if args.kind not in ("request", "response", "appeal", "records"):
+        sys.exit("--kind must be request, response, appeal, or records")
     if bool(args.file) == bool(args.url):
         sys.exit("pass exactly one of --file or --url")
     conn = open_db()
@@ -294,6 +302,33 @@ def cmd_mark(args):
         fields["acknowledged"] = None
     _stamp(conn, row, fields)
     print(f"{row['district']} -> {args.status}")
+
+
+def cmd_fee(args):
+    conn = open_db()
+    row = _get_row(conn, args.name)
+    today = datetime.date.today().isoformat()
+    fields = {"fee_estimate": None if args.amount == "none" else args.amount,
+              "fee_hours": args.hours, "last_public_update": today}
+    _stamp(conn, row, fields)
+    print(f"fee set on {row['district']}: {fields['fee_estimate']} "
+          f"({args.hours} hrs)" if args.hours else
+          f"fee set on {row['district']}: {fields['fee_estimate']}")
+
+
+def cmd_records(args):
+    if not args.count and not args.url:
+        sys.exit("pass at least one of --count or --url")
+    conn = open_db()
+    row = _get_row(conn, args.name)
+    today = datetime.date.today().isoformat()
+    fields = {"records_received": 1, "last_public_update": today}
+    if args.count:
+        fields["records_count"] = args.count
+    if args.url:
+        fields["records_url"] = args.url
+    _stamp(conn, row, fields)
+    print(f"records set on {row['district']}")
 
 
 def cmd_resend(args):
@@ -393,6 +428,8 @@ def cmd_export_json(args):
             "records_url": r["records_url"],
             "last_public_update": r["last_public_update"],
             "fee_estimate": r.get("fee_estimate"),
+            "fee_hours": r.get("fee_hours"),
+            "records_count": r.get("records_count"),
             "appeal_note": r.get("appeal_note"),
         } for r in rows]}
     if documents:
@@ -433,6 +470,14 @@ def main():
     p = sub.add_parser("re-send")
     p.add_argument("--name", required=True)
     p.set_defaults(func=cmd_resend)
+    p = sub.add_parser("fee")
+    p.add_argument("--name", required=True); p.add_argument("--amount", required=True)
+    p.add_argument("--hours", type=float, help="hours claimed in a fee itemization")
+    p.set_defaults(func=cmd_fee)
+    p = sub.add_parser("records")
+    p.add_argument("--name", required=True); p.add_argument("--count", type=int)
+    p.add_argument("--url")
+    p.set_defaults(func=cmd_records)
     sub.add_parser("stats").set_defaults(func=cmd_stats)
     sub.add_parser("migrate").set_defaults(func=cmd_migrate)
     p = sub.add_parser("publish")

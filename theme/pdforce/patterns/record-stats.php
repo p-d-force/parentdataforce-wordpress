@@ -21,13 +21,13 @@ $pdf_stat_sets = array(
 	// Set 1 — the project at a glance.
 	array(
 		array( 'num' => '65', 'lbl' => __( 'Districts requested', 'pdforce' ) ),
-		array( 'num' => '17', 'lbl' => __( 'Receipts acknowledged', 'pdforce' ) ),
-		array( 'num' => '0', 'lbl' => __( 'Records published yet', 'pdforce' ) ),
+		array( 'num' => '18', 'lbl' => __( 'Receipts acknowledged', 'pdforce' ) ),
+		array( 'num' => '1', 'lbl' => __( 'Record production published', 'pdforce' ) ),
 		array( 'num' => 'Sept. 18, 2021–present', 'lbl' => __( 'Records window', 'pdforce' ), 'range' => true ),
 	),
 	// Set 2 — where each district stands right now.
 	array(
-		array( 'num' => '42', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
+		array( 'num' => '37', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
 		array( 'num' => '4', 'lbl' => __( 'Routed or re-sent', 'pdforce' ) ),
 		array( 'num' => '1', 'lbl' => __( 'SPR appeal filed', 'pdforce' ) ),
 		array( 'num' => 'Oct. 2–7', 'lbl' => __( 'Response milestones', 'pdforce' ), 'range' => true ),

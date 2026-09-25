@@ -25,11 +25,11 @@ import wp_api
 SLUG = "georgia-student-settlement-records-project"
 TITLE = "Georgia Student Settlement Records Project"
 PAGE_TEMPLATE = "page-no-title"
-# TODO(user): when the georgia@parentdataforce.com alias is live, flip
-# CONTACT/MAILTO to it (currently joey@ per user decision 2026-09-25).
-CONTACT = "joey@parentdataforce.com"
+# ga@parentdataforce.com alias confirmed live by the user 2026-09-25
+# (joey@ was the interim contact until then).
+CONTACT = "ga@parentdataforce.com"
 MAILTO_REQUEST = (
-    "mailto:joey@parentdataforce.com"
+    "mailto:ga@parentdataforce.com"
     "?subject=Please%20add%20my%20district%20to%20the%20Student%20Settlement%20Records%20Project"
     "&body=District%20name%3A%0ATown%2FCity%3A%0A"
 )

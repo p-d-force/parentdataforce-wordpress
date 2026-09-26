@@ -24,6 +24,7 @@
 	var CFG   = window.pdforceAccount;
 	var ROOT  = document.getElementById( 'pdforce-account-root' );
 	var DAY   = 86400000;
+	var reloaded = false; // one-shot stale-nonce reload guard
 
 	if ( ! CFG ) {
 		return;
@@ -91,6 +92,15 @@
 			body: opts.body ? JSON.stringify( opts.body ) : undefined
 		} ).then( function ( r ) {
 			return r.json().then( function ( j ) {
+				if ( r.status === 403 && j && j.code === 'rest_cookie_invalid_nonce' && ! reloaded ) {
+					// Session token was cycled server-side (stale nonce).
+					// One clean reload re-fetches state; park the caller
+					// on a never-resolving promise so the stale response
+					// is never processed as an error.
+					reloaded = true;
+					window.location.reload();
+					return new Promise( function () {} );
+				}
 				return { status: r.status, json: j || {} };
 			} );
 		} );
@@ -124,36 +134,18 @@
 	/* ---------- single-post comment gate hint ---------- */
 
 	function mountCommentsHint() {
-		if ( 'post' !== CFG.page && authed() ) {
-			var form = document.querySelector( '.wp-block-post-comments-form' );
-			if ( form ) {
-				return; // logged in -> core form stands on its own
-			}
-			var why = el( 'div', { id: 'pdforce-comment-gate',
-				style: 'max-width:750px;margin:2rem auto;padding:1rem 1.25rem;'
-					+ 'border:1px solid #1d1d1d;border-radius:10px;background:#161616;'
-					+ 'font-size:.92rem;' } );
-			why.appendChild( el( 'p', {
-				className: 'pdex-kicker',
-				style: 'margin-bottom:.5rem'
-			}, 'Join the conversation' ) );
-			why.appendChild( el( 'p', {
-				style: 'margin:0'
-			}, 'Comments are open to Parent Data Force members. Create an account (it takes a minute; your first comment is reviewed, the rest post instantly).' ) );
-			var row = el( 'p', { style: 'margin:.9rem 0 0' } );
-			row.appendChild( el( 'a', {
-				href: CFG.registerUrl,
-				className: 'pdex-btn',
-				style: 'text-decoration:none'
-			}, 'Create account' ) );
-			row.appendChild( document.createTextNode( '  ' ) );
-			row.appendChild( el( 'a', {
-				className: 'pdex-quiet pdex-btn',
-				href: CFG.loginUrl,
-				style: 'text-decoration:none'
-			}, 'Log in' ) );
-			why.appendChild( row );
-			form.appendChild( why );
+		// Core renders the .must-log-in notice for anonymous visitors; the
+		// only job here is pointing its link at our styled login page
+		// (preserving the redirect back to this article). No extra panel:
+		// logged-in users get the real form from core.
+		// Singles are localized with page:'' (only the four account pages
+		// carry a sentinel), so an empty page means we are on a post.
+		if ( CFG.page || authed() ) {
+			return;
+		}
+		var a = document.querySelector( '.must-log-in a' );
+		if ( a ) {
+			a.href = CFG.loginUrl + '?redirect_to=' + encodeURIComponent( location.pathname + location.search );
 		}
 	}
 
@@ -241,7 +233,7 @@
 			msg( msgBox, '', '' );
 
 			var payload = stamp();
-			payload.redirect_to = CFG.accountUrl;
+			payload.redirect_to = new URLSearchParams( window.location.search ).get( 'redirect_to' ) || CFG.accountUrl;
 			if ( 'register' === kind ) {
 				payload.user_email = form.elements[ 'user_email' ].value;
 				payload.password = form.elements[ 'password' ].value;
@@ -257,18 +249,23 @@
 			api( '/pdforce/v1/' + kind, { body: payload } ).then( function ( res ) {
 				if ( res.status >= 400 ) {
 					busy( form, false );
-					showMsg( null, msgBox, ( res.json.data && res.json.data.message ) || 'That did not work. Try again.' );
+					showMsg( form, ( res.json.data && res.json.data.message ) || 'That did not work. Try again.' );
 					return;
 				}
 				CFG.loggedIn = true;
 				CFG.wpNonce = res.json.data && res.json.data.nonce || '';
 				var to = ( res.json.data && res.json.data.redirect_to ) || CFG.accountUrl;
+				// The server may echo a same-host PATH; resolve it so the
+				// origin check below passes. Foreign origins still fail.
+				if ( to && '/' === to.charAt( 0 ) ) {
+					to = window.location.origin + to;
+				}
 				if ( to && to.indexOf( window.location.origin ) === 0 ) {
 					window.location.href = to;
 				}
 			} ).catch( function () {
 				busy( form, false );
-				showMsg( null, msgBox, 'Network error. Try again.' );
+				showMsg( form, 'Network error. Try again.' );
 			} );
 		} );
 	}
@@ -550,6 +547,11 @@
 
 	function boot() {
 		headerBadge();
+		if ( authed() && ( 'register' === CFG.page || 'login' === CFG.page ) ) {
+			// Already signed in: auth pages have nothing to offer.
+			window.location.replace( CFG.accountUrl );
+			return;
+		}
 		switch ( CFG.page ) {
 			case 'register': mountForm( 'register' ); break;
 			case 'login': mountForm( 'login' ); break;

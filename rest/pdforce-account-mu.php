@@ -9,7 +9,7 @@
  *
  *              Repo copy: rest/pdforce-account-mu.php
  *              Deploys to /public_html/news/wp-content/mu-plugins/pdforce-account.php
- * Version:     1.0.0
+ * Version:     1.0.3
  * Author:      Parent Data Force
  * Text Domain: pdforce
  */
@@ -380,7 +380,9 @@ function pda_handle_register( $request ) {
 	if ( $regs >= PDA_REG_LIMIT ) {
 		wp_send_json_error( array( 'message' => 'Too many attempts. Try again later.' ), 429 );
 	}
-	set_transient( $rkey, $regs + 1, HOUR_IN_SECONDS );
+	// The increment moved below: this cap counts SUCCESSFUL account
+	// creations only, so validation failures never consume the hourly
+	// budget (mass creation is what this cap defends against).
 
 	$email = sanitize_email( wp_unslash( (string) ( $request['user_email'] ?? '' ) ) );
 	if ( ! is_email( $email ) ) {
@@ -435,6 +437,7 @@ function pda_handle_register( $request ) {
 
 	update_user_meta( $user_id, 'pdforce_role', $role );
 	update_user_meta( $user_id, 'pdforce_district', $district );
+	set_transient( $rkey, 1 + (int) get_transient( $rkey ), HOUR_IN_SECONDS );
 	// Account email (welcome/no password reset forced): same wp_mail path
 	// as ticket pings; deliverability checked honestly at deploy time.
 	wp_new_user_notification( $user_id, null, 'user' );
@@ -482,14 +485,7 @@ function pda_handle_login( $request ) {
 		}
 	}
 
-	$user = wp_signon(
-		array(
-			'user_login'    => $identity,
-			'user_password' => $pwd,
-			'remember'      => $remember,
-		),
-		true
-	);
+	$user = wp_authenticate( $identity, $pwd );
 	if ( is_wp_error( $user ) || ! $user instanceof WP_User ) {
 		set_transient( $fkey, 1 + (int) get_transient( $fkey ), 15 * MINUTE_IN_SECONDS );
 		wp_send_json_error( array( 'message' => 'Unknown username or incorrect password.' ), 401 );
@@ -549,9 +545,6 @@ function pda_handle_ticket_create( $request ) {
 	}
 	$district = pda_clip( $request['t_district'] ?? '', PDA_MAX_DISTRICT );
 
-	set_transient( $uq, 1, PDA_TIX_USER_WINDOW );
-	set_transient( $iq, 1 + (int) get_transient( $iq ), HOUR_IN_SECONDS );
-
 	$user    = wp_get_current_user();
 	$post_id = wp_insert_post(
 		array(
@@ -572,6 +565,11 @@ function pda_handle_ticket_create( $request ) {
 	if ( is_wp_error( $post_id ) || ! $post_id ) {
 		wp_send_json_error( array( 'message' => 'Could not record the ticket. Please try again.' ), 500 );
 	}
+	// Rate-limit bookkeeping runs only after the insert succeeded so a
+	// 500 never leaves the user locked out with no ticket recorded.
+
+	set_transient( $uq, 1, PDA_TIX_USER_WINDOW );
+	set_transient( $iq, 1 + (int) get_transient( $iq ), HOUR_IN_SECONDS );
 
 	$owner = get_option( 'admin_email', 'joey@parentdataforce.com' );
 	wp_mail(
@@ -600,8 +598,8 @@ function pda_handle_tickets_mine() {
 	);
 	$out = array();
 	foreach ( $posts as $p ) {
-		$plain     = wp_strip_all_tags( (string) $p->post_content );
-		$clip      = function_exists( 'mb_substr' ) ? 'mb_substr' : 'substr';
+		$plain = wp_strip_all_tags( (string) $p->post_content );
+		$clip  = function_exists( 'mb_substr' ) ? 'mb_substr' : 'substr';
 		$out[] = array(
 			'id'       => (int) $p->ID,
 			'kind'     => (string) get_post_meta( $p->ID, 'pdforce_kind', true ),
@@ -609,7 +607,10 @@ function pda_handle_tickets_mine() {
 			'subject'  => (string) $p->post_title,
 			'district' => (string) get_post_meta( $p->ID, 'pdforce_district', true ),
 			'date'     => get_the_date( 'c', $p ),
-			'excerpt'  => $clip( $plain, 200 ),
+			// mb_substr/substr need the start offset 0; the old
+			// $clip( $plain, 200 ) sliced FROM char 200 (empty for
+			// short bodies).
+			'excerpt'  => $clip( $plain, 0, 200 ),
 		);
 	}
 	wp_send_json_success( array( 'tickets' => $out, 'count' => count( $out ) ) );

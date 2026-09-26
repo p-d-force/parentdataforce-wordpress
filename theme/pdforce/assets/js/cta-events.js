@@ -37,7 +37,15 @@
 		if ( /\.pdf([?#]|$)/i.test( href ) ) {
 			return 'download';
 		}
-		if ( 0 === href.indexOf( 'http' ) && -1 === href.indexOf( 'parentdataforce.com' ) ) {
+		// Hostname comparison rather than a substring test: share-sharer URLs
+		// embed an ENCODED copy of the current permalink (u=https%3A%2F%2Fwww
+		// .parentdataforce.com/...), which the plain-text test would mistake
+		// for an internal link.
+		if (
+			0 === href.indexOf( 'http' ) &&
+			el.hostname &&
+			el.hostname !== window.location.hostname
+		) {
 			return 'external';
 		}
 		if ( 0 === href.indexOf( '#' ) ) {
@@ -88,4 +96,54 @@
 		},
 		{ capture: true, passive: true }
 	);
+
+	/* Copy-link buttons (.pdf-share-copy): copy the permalink, then briefly
+	   swap the label to "Copied" so the action is visible. */
+	document.addEventListener(
+		'click',
+		function ( ev ) {
+			var btn = ev.target.closest( '.pdf-share-copy' );
+			if ( ! btn ) {
+				return;
+			}
+
+			var url = btn.getAttribute( 'data-share-url' ) || '';
+			if ( ! url ) {
+				return;
+			}
+
+			function done() {
+				var original = btn.textContent;
+				btn.textContent = 'Copied';
+				setTimeout( function () {
+					btn.textContent = original;
+				}, 1500 );
+			}
+
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( url ).then( done ).catch( function () {
+					legacyCopy( url );
+					done();
+				} );
+			} else {
+				legacyCopy( url );
+				done();
+			}
+		},
+		{ capture: true }
+	);
+
+	function legacyCopy( text ) {
+		var ta = document.createElement( 'textarea' );
+		ta.value = text;
+		ta.setAttribute( 'readonly', '' );
+		ta.style.position = 'fixed';
+		ta.style.left = '-9999px';
+		document.body.appendChild( ta );
+		ta.select();
+		try {
+			document.execCommand( 'copy' );
+		} catch ( e ) {} // eslint-disable-line no-empty
+		document.body.removeChild( ta );
+	}
 } )();

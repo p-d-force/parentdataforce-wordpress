@@ -6,9 +6,10 @@ and creates a draft post via the REST API, assigned the single-long-form
 template registered in the pdforce theme.
 
 Entries are idempotent by slug: an existing post (any status) with the same
-slug is left untouched and only round-trip-verified. Categories/tags, when
-given, are assigned to NEW posts only -- existing posts 15/16/17 are never
-modified.
+slug is left untouched and only round-trip-verified. The slug defaults to
+slugify(title); an entry may pin a different slug with a "slug" key (used by
+the per-district response series). Categories/tags, when given, are assigned
+to NEW posts only -- existing posts 15/16/17 are never modified.
 
 Usage:
   python publish_articles.py            # create missing drafts (idempotent)
@@ -97,6 +98,42 @@ ARTICLES = [
         "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article15_tantasqua_production.md",
+        "slug": "tantasqua-first-production-45-pages-no-fee",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article16_dracut_fee.md",
+        "slug": "dracut-charges-2950-for-45-agreements",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article17_peabody_fee.md",
+        "slug": "peabody-wants-300-before-it-looks",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article18_pentucket_fee.md",
+        "slug": "pentucket-itemizes-150-estimate",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article19_berlin_boylston_fee.md",
+        "slug": "berlin-boylston-prices-request-at-75-denies-waiver",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article20_amesbury_appeal.md",
+        "slug": "amesbury-750-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 
@@ -115,7 +152,7 @@ def main():
         with open(path, encoding="utf-8") as f:
             md = f.read()
         title, _dek, body = convert(md)
-        slug = slugify(title)
+        slug = entry.get("slug") or slugify(title)
         existing = find_by_slug(wp, slug)
 
         if existing:

@@ -368,6 +368,65 @@
 	opacity: 0.8;
 }
 
+/* ---- share row (single posts) ---------------------------------------------- */
+.pdf-share {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	border-top: 1px solid var(--pdf-line);
+	padding: 0.9rem 0;
+	margin-top: 1.5rem;
+}
+.pdf-share-label {
+	font-family: var(--pdf-mono);
+	font-size: 0.6875rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--pdf-mid);
+	margin-right: 0.25rem;
+}
+.pdf-share-link {
+	font-family: var(--pdf-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: inherit;
+	text-decoration: none;
+	border: 1px solid var(--pdf-mid);
+	border-radius: 999px;
+	padding: 0.3rem 0.85rem;
+	background: transparent;
+	cursor: pointer;
+	transition: color 0.15s ease, border-color 0.15s ease;
+}
+.pdf-share-link:hover {
+	color: var(--pdf-signal);
+	border-color: var(--pdf-signal);
+}
+
+/* ---- settlement-response series nav (District Data posts) ------------------ */
+.pdf-response-nav {
+	margin: 0 0 1.6em 1.2em;
+}
+.pdf-response-nav li {
+	margin-bottom: 0.4em;
+}
+.pdf-response-nav a {
+	font-family: var(--pdf-mono);
+	font-size: 0.85rem;
+	color: var(--pdf-mid);
+	text-decoration: none;
+}
+.pdf-response-nav a:hover {
+	color: var(--pdf-signal-hi);
+	text-decoration: underline;
+}
+.pdf-response-nav li.is-current a {
+	font-weight: 700;
+	color: var(--pdf-signal-hi);
+}
+
 /* ---- 404 fault scene ------------------------------------------------------ */
 .pdf-404 { position: relative; min-height: 52vh; overflow: hidden; border: 1px solid var(--pdf-line); }
 .pdf-404 .pdf-ascii { position: absolute; inset: 0; width: 100%; height: 100%; }

@@ -10,6 +10,7 @@ then auto-merges against the tracker) -> `build_settlements_page.py` renders.
 
 Usage (run from tools/):
   python queue_db.py init
+  python queue_db.py migrate    # idempotent schema upgrade (e.g. votes column)
   python queue_db.py seed       # idempotent: INSERT OR IGNORE, counts unchanged
 """
 import argparse
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS queue (
     jurisdiction TEXT NOT NULL,
     note TEXT NOT NULL DEFAULT '',
     requested_count INTEGER NOT NULL DEFAULT 1,
+    votes INTEGER NOT NULL DEFAULT 0,  -- reader upvotes ("interested in it")
     first_requested TEXT NOT NULL,     -- ISO date
     last_requested TEXT NOT NULL,      -- ISO date
     source TEXT NOT NULL DEFAULT 'reader',  -- 'reader' | 'seed'
@@ -100,12 +102,42 @@ def upsert(conn, district, jurisdiction, note="", source="reader", date=None):
     return "inserted"
 
 
+def vote(conn, district, date=None):
+    """Bump the vote count on an existing queue row (case-insensitive match).
+    Commits nothing; caller commits. Returns 'voted', or None when the
+    district is not queued (votes never create queue rows)."""
+    district = str(district).strip()
+    if not district:
+        return None
+    row = conn.execute(
+        "SELECT id FROM queue WHERE lower(district) = lower(?)",
+        (district,)).fetchone()
+    if not row:
+        return None
+    conn.execute("UPDATE queue SET votes = votes + 1 WHERE id = ?", (row["id"],))
+    return "voted"
+
+
 def cmd_init(args):
     conn = open_db()
     conn.executescript(SCHEMA)
     conn.commit()
     conn.close()
     print("schema ready")
+
+
+def cmd_migrate(args):
+    """Idempotent schema upgrade for pre-votes DB files."""
+    conn = open_db()
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(queue)").fetchall()}
+    if "votes" in cols:
+        print("schema current: votes present")
+        conn.close()
+        return
+    conn.execute("ALTER TABLE queue ADD COLUMN votes INTEGER NOT NULL DEFAULT 0")
+    conn.commit()
+    conn.close()
+    print("migrated: votes column added")
 
 
 def cmd_seed(args):
@@ -134,6 +166,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init").set_defaults(func=cmd_init)
+    sub.add_parser("migrate").set_defaults(func=cmd_migrate)
     sub.add_parser("seed").set_defaults(func=cmd_seed)
     args = ap.parse_args()
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

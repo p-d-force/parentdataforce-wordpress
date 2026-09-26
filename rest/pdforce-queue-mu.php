@@ -5,20 +5,22 @@
  *              route (POST /pdforce/v1/queue) for the MA Student Settlement
  *              Records district queue. Deployed as mu-plugin:
  *              /public_html/news/wp-content/mu-plugins/pdforce-queue.php
- * Version:     1.0.0
+ * Version:     1.1.0
  *
  * Intake shape (application/x-www-form-urlencoded):
+ *   POST /pdforce/v1/queue      — district submission (below)
+ *   POST /pdforce/v1/queue/vote — interest vote on a queued district
  *   pdq_district  required, <= 120 chars
- *   pdq_town      optional, <= 120 chars
- *   pdq_note      optional, <= 400 chars
+ *   pdq_town      optional, <= 120 chars (submission only)
+ *   pdq_note      optional, <= 400 chars (submission only)
  *   pdq_ts        required, epoch seconds stamped by the form at submit time
  *   pdq_website   honeypot — must stay empty
  *
  * Stored as private pdforce_queue_note posts:
  *   title   = district
- *   content = "district|town|note" (pipe-delimited, parsed by
- *             `settlements_db.py queue-ingest`, which then marks
- *             pdforce_ingested = 1 via REST meta)
+ *   content = "district|town|note" for submissions, "vote|district" for votes
+ *             (pipe-delimited, parsed by `settlements_db.py queue-ingest`,
+ *             which then marks pdforce_ingested = 1 via REST meta)
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -76,6 +78,16 @@ function pdq_register_queue_route() {
 			'methods'             => 'POST',
 			'permission_callback' => '__return_true',
 			'callback'            => 'pdq_handle_queue_submission',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/queue/vote',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => 'pdq_handle_queue_vote',
 		)
 	);
 }
@@ -145,4 +157,59 @@ function pdq_handle_queue_submission( $request ) {
 		array( 'message' => 'Queued. It will appear here at the next refresh.' ),
 		200
 	);
+}
+
+/**
+ * Vote handler: same gates as intake, but rate-limited per district per IP
+ * (one vote per district per hour per IP) so a reader can vote for several
+ * districts in a row without hitting the intake window.
+ */
+function pdq_handle_queue_vote( $request ) {
+	// Honeypot: same trap as intake.
+	if ( ! empty( $request['pdq_website'] ) ) {
+		wp_send_json_error( null, 400 );
+	}
+
+	// Time floor: vote buttons stamp pdq_ts at click time.
+	$ts  = (int) ( $request['pdq_ts'] ?? 0 );
+	$now = time();
+	if ( $ts < $now - PDQ_TIME_FLOOR || $ts > $now + PDQ_TIME_CEIL ) {
+		wp_send_json_error( null, 400 );
+	}
+
+	$district = pdq_clip( $request['pdq_district'] ?? '', PDQ_MAX_TEXT );
+	if ( '' === $district ) {
+		wp_send_json_error( array( 'message' => 'District name is required.' ), 400 );
+	}
+
+	// Rate limit: one vote per district per hour per IP.
+	$ip       = isset( $_SERVER['REMOTE_ADDR'] ) ? md5( (string) $_SERVER['REMOTE_ADDR'] ) : '';
+	$vote_key = 'pdq_vrate_' . md5( $ip . '|' . strtolower( $district ) );
+	if ( false !== get_transient( $vote_key ) ) {
+		wp_send_json_error(
+			array( 'message' => 'Already voted for this district recently.' ),
+			429
+		);
+	}
+
+	set_transient( $vote_key, 1, HOUR_IN_SECONDS );
+
+	$post_id = wp_insert_post(
+		array(
+			'post_type'    => 'pdforce_queue_note',
+			'post_title'   => $district,
+			'post_content' => 'vote|' . $district,
+			'post_status'  => 'private',
+		),
+		true
+	);
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		wp_send_json_error(
+			array( 'message' => 'Could not record the vote. Please try again.' ),
+			500
+		);
+	}
+
+	wp_send_json_success( array( 'message' => 'Vote counted.' ), 200 );
 }

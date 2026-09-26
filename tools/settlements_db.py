@@ -438,7 +438,7 @@ def cmd_queue(args):
         served = "" if r["queued"] else " [served]"
         print(f'{r["district"]} ({r["jurisdiction"]}) · first {r["first_requested"]}'
               f' · last {r["last_requested"]} · requested {r["requested_count"]}× ·'
-              f' source={r["source"]}{served}')
+              f' votes {r["votes"]} · source={r["source"]}{served}')
     print(f"{len(rows)} rows")
 
 
@@ -511,14 +511,24 @@ def cmd_queue_ingest(args):
             continue
         raw = (m.get("content") or {}).get("raw") or ""
         parts = raw.split("|", 2)
+        date = (m.get("date_gmt") or m.get("date") or "")[:10]
+        if not date:
+            date = datetime.date.today().isoformat()
+        if len(parts) >= 2 and parts[0].strip().lower() == "vote":
+            # Interest vote: bump the existing queue row; never creates one.
+            district = parts[1].strip()
+            if not district or queue_db.vote(conn, district) is None:
+                print(f"queue note {m.get('id')}: vote for unknown district "
+                      f"{district!r} — skipped", file=sys.stderr)
+            c.call("POST", f"/wp/v2/queue-notes/{m['id']}",
+                   {"meta": {QUEUE_INGESTED_META: 1}}, quiet=True)
+            ingested += 1
+            continue
         if len(parts) < 2 or not parts[0].strip():
             print(f"queue note {m.get('id')}: unparseable content — skipped",
                   file=sys.stderr)
             continue
         note = parts[2].strip() if len(parts) > 2 else ""
-        date = (m.get("date_gmt") or m.get("date") or "")[:10]
-        if not date:
-            date = datetime.date.today().isoformat()
         queue_db.upsert(conn, parts[0], parts[1], note=note, source="reader", date=date)
         c.call("POST", f"/wp/v2/queue-notes/{m['id']}",
                {"meta": {QUEUE_INGESTED_META: 1}}, quiet=True)

@@ -75,10 +75,12 @@ QUEUE_EXPLAIN = (
     "up, the next standard request goes out from the top of this list — "
     "first-come, first-served. Check the Live District Tracker above and this "
     "list before requesting a district — if a district is already tracked or "
-    "queued, there's no need to request it again."
+    "queued, there's no need to request it again. Vote up the queued districts "
+    "you're interested in — votes show where demand is strongest."
 )
 DONATE_URL = "https://www.parentdataforce.com/donate/"
 QUEUE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue"
+QUEUE_VOTE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue/vote"
 MAILTO_QUEUE = (
     "mailto:joey@parentdataforce.com"
     "?subject=Please%20add%20my%20district%20to%20the%20Student%20Settlement%20Records%20Project"
@@ -132,7 +134,36 @@ QUEUE_FORM_HTML = """<details class="pssr-queue-form">
 })();
 </script>
 </form>
-</details>""".replace("__ENDPOINT__", QUEUE_ENDPOINT).replace("__MAILTO__", MAILTO_QUEUE)
+</details>
+<script>
+(function () {
+	"use strict";
+	var buttons = document.querySelectorAll(".pdq-vote");
+	if (!buttons.length) { return; }
+	var endpoint = "__VOTE_ENDPOINT__";
+	Array.prototype.forEach.call(buttons, function (btn) {
+		btn.addEventListener("click", function () {
+			if (btn.disabled) { return; }
+			btn.disabled = true;
+			var count = parseInt(btn.textContent.replace(/\\D+/g, ""), 10) || 0;
+			fetch(endpoint, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: "pdq_district=" + encodeURIComponent(btn.getAttribute("data-district")) +
+					"&pdq_ts=" + String(Math.floor(Date.now() / 1000)) +
+					"&pdq_website="
+			}).then(function (r) { return r.json(); }).then(function (d) {
+				if (d && d.success) {
+					btn.textContent = "▲ " + (count + 1);
+					btn.classList.add("pdq-voted");
+				} else {
+					btn.disabled = false;
+				}
+			}).catch(function () { btn.disabled = false; });
+		});
+	});
+})();
+</script>""".replace("__ENDPOINT__", QUEUE_ENDPOINT).replace("__MAILTO__", MAILTO_QUEUE).replace("__VOTE_ENDPOINT__", QUEUE_VOTE_ENDPOINT)
 
 # Verbatim copy/paste template from
 # 03_PUBLIC_RECORDS_REQUEST_TEMPLATE.md (the fenced ```text block).
@@ -501,6 +532,11 @@ ENHANCEMENT_CSS = """<style>
 .pdq-nojs{flex:1 1 100%;margin:0;font-size:.8125rem;color:var(--pdf-mid,#a0a0a0)}
 .pdq-nojs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
 .pdq-nojs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
+.pssr-votes{white-space:nowrap}
+.pdq-vote{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;padding:.35rem .8rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
+.pdq-vote:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+.pdq-voted{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+.pdq-vote:disabled{opacity:.55;cursor:default}
 </style>"""
 
 ENHANCEMENT_JS = """<script>
@@ -916,6 +952,7 @@ def build_blocks(project, rows, documents=(), queue=()):
             '<th scope="col">First requested</th>'
             '<th scope="col">Last requested</th>'
             '<th scope="col">Times requested</th>'
+            '<th scope="col">Votes</th>'
             '<th scope="col">Note</th>'
             "</tr>"
         )
@@ -929,6 +966,9 @@ def build_blocks(project, rows, documents=(), queue=()):
                 f'<td class="pssr-qdate" data-label="First requested">{fmt_short(q["first_requested"])}</td>'
                 f'<td class="pssr-qdate" data-label="Last requested">{fmt_short(q["last_requested"])}</td>'
                 f'<td class="pssr-qcount" data-label="Times requested">{q["requested_count"]}</td>'
+                f'<td class="pssr-votes" data-label="Votes">'
+                f'<button type="button" class="pdq-vote" data-district="{attr(q["district"])}" '
+                f'aria-label="{attr(f"Vote up {q['district']}")}">▲ {q.get("votes", 0)}</button></td>'
                 f'<td class="pssr-note" data-label="Note">{note}</td>'
                 "</tr>"
             )

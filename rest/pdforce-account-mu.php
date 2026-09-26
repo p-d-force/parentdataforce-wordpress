@@ -331,6 +331,38 @@ function pda_sanitize_redirect( $to ) {
 	return esc_url_raw( wp_validate_redirect( $to, '' ) );
 }
 
+
+/**
+ * Establish the auth cookie AND mint a wp_rest nonce bound to the SAME
+ * session token. wp_create_nonce() reads the session token out of the
+ * logged-in cookie in $_COOKIE; during the login/register request that
+ * cookie exists only in the outgoing headers, so we inject it. Without
+ * this, handler-issued nonces verify against token "" and later REST
+ * calls (token from the real cookie) fail with rest_cookie_invalid_nonce.
+ */
+function pda_set_session_and_nonce( $user_id, $remember ) {
+	$expiration = time() + apply_filters(
+		'auth_cookie_expiration',
+		$remember ? 14 * DAY_IN_SECONDS : 2 * DAY_IN_SECONDS,
+		$user_id,
+		$remember
+	);
+	$manager = WP_Session_Tokens::get_instance( $user_id );
+	$token   = $manager->create( $expiration );
+	wp_clear_auth_cookie();
+	wp_set_auth_cookie( $user_id, $remember, '', $token );
+	wp_set_current_user( $user_id );
+	// Make the cookie visible to wp_get_session_token() in THIS request.
+	$cookie_name = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token );
+	$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie_name;
+	$GLOBALS['pda_rest_nonce'] = wp_create_nonce( 'wp_rest' );
+}
+
+/** REST nonce minted together with the current auth cookie. */
+function pda_session_nonce() {
+	return isset( $GLOBALS['pda_rest_nonce'] ) ? $GLOBALS['pda_rest_nonce'] : wp_create_nonce( 'wp_rest' );
+}
+
 /**
  * POST /pdforce/v1/register
  * Body: user_email (required), password (required, >=8), user_login
@@ -408,14 +440,14 @@ function pda_handle_register( $request ) {
 	wp_new_user_notification( $user_id, null, 'user' );
 
 	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id, true );
+	pda_set_session_and_nonce( $user_id, true );
 
 	$redirect = pda_sanitize_redirect( $request['redirect_to'] ?? '' );
 	wp_send_json_success(
 		array(
 			'user_id'     => $user_id,
 			'display_name'=> $display,
-			'nonce'       => wp_create_nonce( 'wp_rest' ),
+			'nonce'       => pda_session_nonce(),
 			'redirect_to' => $redirect ? $redirect : home_url( '/account/' ),
 		),
 		201
@@ -463,14 +495,14 @@ function pda_handle_login( $request ) {
 		wp_send_json_error( array( 'message' => 'Unknown username or incorrect password.' ), 401 );
 	}
 
-	wp_set_current_user( $user->ID );
+	pda_set_session_and_nonce( $user->ID, $remember );
 
 	$redirect = pda_sanitize_redirect( $request['redirect_to'] ?? '' );
 	wp_send_json_success(
 		array(
 			'user_id'     => $user->ID,
 			'display_name'=> $user->display_name,
-			'nonce'       => wp_create_nonce( 'wp_rest' ),
+			'nonce'       => pda_session_nonce(),
 			'redirect_to' => $redirect ? $redirect : home_url( '/account/' ),
 		)
 	);

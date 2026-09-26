@@ -36,8 +36,8 @@
 			<!-- wp:navigation-link {"label":"Appearances","url":"https://www.parentdataforce.com/appearances/"} /-->
 			<!-- wp:navigation-link {"label":"Resources","url":"https://www.parentdataforce.com/resources/"} /-->
 			<!-- wp:navigation-link {"label":"About","url":"https://www.parentdataforce.com/about/"} /-->
-			<!-- wp:navigation-link {"label":"Submit Data","url":"https://www.parentdataforce.com/submit/"} /-->
 			<!-- wp:navigation-link {"label":"\u2764 Donate","url":"https://www.parentdataforce.com/donate/"} /-->
+			<!-- wp:navigation-link {"label":"Account","url":"/account/"} /-->
 			<!-- /wp:navigation -->
 			</div>
 			<!-- /wp:group -->

@@ -5,7 +5,7 @@
  *              route (POST /pdforce/v1/queue) for the MA Student Settlement
  *              Records district queue. Deployed as mu-plugin:
  *              /public_html/news/wp-content/mu-plugins/pdforce-queue.php
- * Version:     1.1.0
+ * Version:     1.2.0
  *
  * Intake shape (application/x-www-form-urlencoded):
  *   POST /pdforce/v1/queue      — district submission (below)
@@ -136,11 +136,17 @@ function pdq_handle_queue_submission( $request ) {
 
 	set_transient( $rate_key, 1, PDQ_RATE_WINDOW );
 
+	// State prefix: GA traffic (pdq_state=ga) stores under a ga| prefix so
+	// the Massachusetts ingest (settlements_db.py queue-ingest) ignores it
+	// and the Georgia ingest (ga_settlements_db.py queue-ingest) reads only
+	// its own posts. Unprefixed = Massachusetts (legacy shape).
+	$prefix = ( 'ga' === ( $request['pdq_state'] ?? '' ) ) ? 'ga|' : '';
+	$content = $prefix . $district . '|' . $town . '|' . $note;
 	$post_id = wp_insert_post(
 		array(
 			'post_type'    => 'pdforce_queue_note',
 			'post_title'   => $district,
-			'post_content' => $district . '|' . $town . '|' . $note,
+			'post_content' => $content,
 			'post_status'  => 'private',
 		),
 		true
@@ -194,11 +200,14 @@ function pdq_handle_queue_vote( $request ) {
 
 	set_transient( $vote_key, 1, HOUR_IN_SECONDS );
 
+	// State prefix: GA votes store as "vote-ga|district" so each state's
+	// ingest only counts its own votes (MA reads "vote|", GA "vote-ga|").
+	$prefix  = ( 'ga' === ( $request['pdq_state'] ?? '' ) ) ? 'vote-ga|' : 'vote|';
 	$post_id = wp_insert_post(
 		array(
 			'post_type'    => 'pdforce_queue_note',
 			'post_title'   => $district,
-			'post_content' => 'vote|' . $district,
+			'post_content' => $prefix . $district,
 			'post_status'  => 'private',
 		),
 		true
@@ -212,4 +221,114 @@ function pdq_handle_queue_vote( $request ) {
 	}
 
 	wp_send_json_success( array( 'message' => 'Vote counted.' ), 200 );
+}
+
+/**
+ * Render-time pending-vote patch (v1.2.0).
+ *
+ * The page's vote counts are baked in when `settlements_db.py publish`
+ * regenerates the page content. Vote posts that arrive AFTER the last
+ * publish are invisible until the next ingest+publish — readers see their
+ * vote "not stick" when they reload. Fix: on renders of page 41, find
+ * pending (pdforce_ingested not set) vote posts and inject each district's
+ * pending count into every pssr-s-votes pill for that district — net
+ * add/subtract, no double counting if the built counts already include
+ * older ingested votes.
+ */
+add_filter( 'the_content', 'pdq_patch_pending_votes', 20 );
+function pdq_patch_pending_votes( $content ) {
+	if ( ! is_singular( 'page' ) || ! in_the_loop() || ! is_main_query() ) {
+		return $content;
+	}
+	if ( false === strpos( $content, 'pssr-s-votes' ) ) {
+		return $content;
+	}
+
+	$pending = get_posts(
+		array(
+			'post_type'      => 'pdforce_queue_note',
+			'post_status'    => 'private',
+			'posts_per_page' => 200, // hard cap; intake grows per event, not per site
+			'fields'         => 'ids',
+		)
+	);
+	if ( ! $pending ) {
+		return $content;
+	}
+
+	$pending_votes = array();
+	$is_ma         = false !== strpos( (string) get_permalink(), 'massachusetts-student-settlement-records' );
+	foreach ( $pending as $pid ) {
+		$meta = get_post_meta( $pid, 'pdforce_ingested', true );
+		if ( ! empty( $meta ) ) {
+			continue;
+		}
+		$raw = (string) get_post_field( 'post_content', $pid );
+		if ( $is_ma ) {
+			// Massachusetts page: plain "vote|" posts only.
+			if ( 0 !== strpos( $raw, 'vote|' ) ) {
+				continue;
+			}
+			$district = trim( substr( $raw, 5 ) );
+		} else {
+			// Other tracker pages (Georgia): "vote-ga|" posts only.
+			if ( 0 !== strpos( $raw, 'vote-ga|' ) ) {
+				continue;
+			}
+			$district = trim( substr( $raw, 8 ) );
+		}
+		if ( '' === $district ) {
+			continue;
+		}
+		$pending_votes[ mb_strtolower( $district ) ] = ( $pending_votes[ mb_strtolower( $district ) ] ?? 0 ) + 1;
+	}
+	if ( ! $pending_votes ) {
+		return $content;
+	}
+
+	// For each district with pending votes, bump every .pssr-s-votes pill
+	// inside the <details> cards whose vote button carries that district.
+	foreach ( $pending_votes as $district => $n ) {
+		$content = pdq_bump_pill( $content, $district, $n );
+	}
+	return $content;
+}
+
+/**
+ * Add $n to every pssr-s-votes pill inside the <details> whose .pdq-vote
+ * button has data-district matching $district (case-insensitive HTML
+ * compare on the escaped attribute value).
+ */
+function pdq_bump_pill( $content, $district, $n ) {
+	$llower = 'data-district="' . strtolower( esc_attr( $district ) ) . '"';
+	$offset = 0;
+	$found  = false;
+	while ( false !== ( $pos = stripos( $content, $llower, $offset ) ) ) {
+		$found = true;
+		// Walk back to the enclosing <details ...> start.
+		$details_start = strrpos( substr( $content, 0, $pos ), '<details ' );
+		if ( false === $details_start ) {
+			break;
+		}
+		$details_end = strpos( $content, '</details>', $pos );
+		if ( false === $details_end ) {
+			break;
+		}
+		$block = substr( $content, $details_start, $details_end + 10 - $details_start );
+		// Bump every vote pill in this block by n (span pills and button
+		// pills both look like ">▲ N<" inside a .pssr-s-votes element).
+		$block = preg_replace_callback(
+			'/(<span class="pssr-s-votes">|<button[^>]*pssr-s-votes"[^>]*>)([^<]*)(<\/(?:span|button)>)/',
+			function ( $m ) use ( $n ) {
+				preg_match( '/▲\s*(\d+)/', $m[2], $num );
+				$cur = isset( $num[1] ) ? (int) $num[1] : 0;
+				return $m[1] . '▲ ' . ( $cur + $n ) . $m[3];
+			},
+			$block
+		);
+		// Advance past this details block so overlaps can't double-apply.
+		$content = substr_replace( $content, $block, $details_start, $details_end + 10 - $details_start );
+		$offset  = $details_start + strlen( $block );
+	}
+	return $found ? $content : $content;
 }

@@ -19,6 +19,11 @@ Usage:
   python settlements_db.py stats
   python settlements_db.py publish [--status draft|publish]
   python settlements_db.py export-json <snapshot.json>
+  python settlements_db.py queue [--history]
+  python settlements_db.py queue-add --name N --town J [--note "…"] [--source reader|seed] [--date YYYY-MM-DD]
+  python settlements_db.py queue-remove --name SUBSTR
+  python settlements_db.py queue-merge
+  python settlements_db.py queue-ingest
 """
 import argparse
 import datetime
@@ -31,6 +36,7 @@ import urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wp_api  # noqa: E402
 import build_settlements_page as bsp  # noqa: E402
+import queue_db  # noqa: E402
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settlements.sqlite")
 
@@ -375,7 +381,15 @@ def _project_and_rows(conn):
 
 
 def _publish(project, rows, status, documents=()):
-    content = bsp.build_blocks(project, rows, documents=documents)
+    try:
+        qconn = queue_db.open_db()
+        queue = [dict(r) for r in qconn.execute(
+            "SELECT * FROM queue WHERE queued=1").fetchall()]
+        qconn.close()
+    except sqlite3.OperationalError:
+        sys.exit("queue DB missing — run: python queue_db.py init && python queue_db.py seed")
+    queue = bsp.queue_rows(rows, queue)
+    content = bsp.build_blocks(project, rows, documents=documents, queue=queue)
     c = wp_api.client()
     existing = c.call(
         "GET",
@@ -406,6 +420,114 @@ def cmd_publish(args):
     for r in rows:
         r["records_received"] = bool(r.pop("records_received"))
     _publish(project, rows, args.status, documents)
+
+
+# ---- district queue (tools/settlements_queue.sqlite) -----------------------
+
+QUEUE_INGESTED_META = "pdforce_ingested"
+
+
+def cmd_queue(args):
+    conn = queue_db.open_db()
+    cond = "" if args.history else " WHERE queued=1"
+    rows = conn.execute(
+        f"SELECT * FROM queue{cond} "
+        "ORDER BY first_requested, last_requested DESC, district").fetchall()
+    conn.close()
+    for r in rows:
+        served = "" if r["queued"] else " [served]"
+        print(f'{r["district"]} ({r["jurisdiction"]}) · first {r["first_requested"]}'
+              f' · last {r["last_requested"]} · requested {r["requested_count"]}× ·'
+              f' source={r["source"]}{served}')
+    print(f"{len(rows)} rows")
+
+
+def cmd_queue_add(args):
+    conn = queue_db.open_db()
+    date = args.date or datetime.date.today().isoformat()
+    kind = queue_db.upsert(conn, args.name, args.town, note=args.note or "",
+                           source=args.source, date=date)
+    conn.commit()
+    conn.close()
+    print(f"queued {args.name}: {kind} ({date})")
+
+
+def cmd_queue_remove(args):
+    conn = queue_db.open_db()
+    rows = conn.execute(
+        "SELECT * FROM queue WHERE lower(district) LIKE ? AND queued=1 ORDER BY district",
+        (f"%{args.name.lower()}%",)).fetchall()
+    if not rows:
+        sys.exit(f"no queued district matches {args.name!r}")
+    if len(rows) > 1:
+        cands = ", ".join(r["district"] for r in rows)
+        sys.exit(f"ambiguous match for {args.name!r}: {cands}")
+    conn.execute("UPDATE queue SET queued=0 WHERE id=?", (rows[0]["id"],))
+    conn.commit()
+    conn.close()
+    print(f"removed {rows[0]['district']} from queue (history kept)")
+
+
+def _queue_merge():
+    """queued=0 for queue rows whose district (case-insensitive, trimmed)
+    matches any settlements.sqlite district or shared jurisdiction string.
+    Keeps history rows. Returns (kept, removed)."""
+    sconn = open_db()
+    tracker = sconn.execute("SELECT district, jurisdiction FROM districts").fetchall()
+    sconn.close()
+    known = {r["district"].strip().lower() for r in tracker}
+    known |= {r["jurisdiction"].strip().lower() for r in tracker}
+    conn = queue_db.open_db()
+    kept = removed = 0
+    for q in conn.execute(
+            "SELECT id, district, jurisdiction FROM queue WHERE queued=1").fetchall():
+        if (q["district"].strip().lower() in known
+                or q["jurisdiction"].strip().lower() in known):
+            conn.execute("UPDATE queue SET queued=0 WHERE id=?", (q["id"],))
+            removed += 1
+        else:
+            kept += 1
+    conn.commit()
+    conn.close()
+    return kept, removed
+
+
+def cmd_queue_merge(args):
+    kept, removed = _queue_merge()
+    print(f"kept={kept}, removed={removed}")
+
+
+def cmd_queue_ingest(args):
+    c = wp_api.client()
+    posts = c.call("GET",
+                   "/wp/v2/queue-notes?per_page=100&status=private&context=edit",
+                   quiet=True)
+    conn = queue_db.open_db()
+    ingested = skipped = 0
+    for m in posts:
+        meta = m.get("meta") or {}
+        if meta.get(QUEUE_INGESTED_META):
+            skipped += 1
+            continue
+        raw = (m.get("content") or {}).get("raw") or ""
+        parts = raw.split("|", 2)
+        if len(parts) < 2 or not parts[0].strip():
+            print(f"queue note {m.get('id')}: unparseable content — skipped",
+                  file=sys.stderr)
+            continue
+        note = parts[2].strip() if len(parts) > 2 else ""
+        date = (m.get("date_gmt") or m.get("date") or "")[:10]
+        if not date:
+            date = datetime.date.today().isoformat()
+        queue_db.upsert(conn, parts[0], parts[1], note=note, source="reader", date=date)
+        c.call("POST", f"/wp/v2/queue-notes/{m['id']}",
+               {"meta": {QUEUE_INGESTED_META: 1}}, quiet=True)
+        ingested += 1
+    conn.commit()
+    conn.close()
+    print(f"ingested={ingested}, skipped={skipped}")
+    kept, removed = _queue_merge()
+    print(f"merge: kept={kept}, removed={removed}")
 
 
 def cmd_export_json(args):
@@ -485,6 +607,22 @@ def main():
     p.set_defaults(func=cmd_publish)
     p = sub.add_parser("export-json")
     p.add_argument("path"); p.set_defaults(func=cmd_export_json)
+    p = sub.add_parser("queue")
+    p.add_argument("--history", action="store_true",
+                   help="also show rows already served/removed (queued=0)")
+    p.set_defaults(func=cmd_queue)
+    p = sub.add_parser("queue-add")
+    p.add_argument("--name", required=True)
+    p.add_argument("--town", required=True)
+    p.add_argument("--note")
+    p.add_argument("--source", choices=("reader", "seed"), default="reader")
+    p.add_argument("--date", help="ISO date (default: today)")
+    p.set_defaults(func=cmd_queue_add)
+    p = sub.add_parser("queue-remove")
+    p.add_argument("--name", required=True)
+    p.set_defaults(func=cmd_queue_remove)
+    sub.add_parser("queue-merge").set_defaults(func=cmd_queue_merge)
+    sub.add_parser("queue-ingest").set_defaults(func=cmd_queue_ingest)
     args = ap.parse_args()
     if args.cmd != "init":
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

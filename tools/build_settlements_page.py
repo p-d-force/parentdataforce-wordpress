@@ -66,16 +66,73 @@ STATUS_BADGES = {
 DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal",
                    "records": "Records"}
 
-# Reader-suggested queue for future standardized requests. Reader identities are
-# deliberately not recorded here (one requester asked for anonymity).
-REQUESTED_NEXT = (
-    "Auburn Public Schools",
-    "Chelmsford Public Schools",
-    "Haverhill Public Schools",
-    "Lawrence Public Schools",
-    "Newton Public Schools",
-    "North Andover Public Schools",
+# Reader-suggested district queue, rendered from tools/settlements_queue.sqlite
+# (see queue_db.py and settlements_db.py queue-* commands). Reader identities
+# are deliberately not recorded (one requester asked for anonymity).
+QUEUE_HEAD = "Requested next"
+QUEUE_EXPLAIN = (
+    "Districts queue in the order requests are received. When staff time opens "
+    "up, the next standard request goes out from the top of this list — "
+    "first-come, first-served. Check the Live District Tracker above and this "
+    "list before requesting a district — if a district is already tracked or "
+    "queued, there's no need to request it again."
 )
+DONATE_URL = "https://www.parentdataforce.com/donate/"
+QUEUE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue"
+MAILTO_QUEUE = (
+    "mailto:joey@parentdataforce.com"
+    "?subject=Please%20add%20my%20district%20to%20the%20Student%20Settlement%20Records%20Project"
+    "&body=District%3A%0ATown%3A%0AQueue%3A%20yes"
+)
+QUEUE_FORM_HTML = """<details class="pssr-queue-form">
+<summary>Queue a district</summary>
+<form id="pdq-form" action="__ENDPOINT__" method="post">
+<p class="pdq-intro">Add a district to the request queue. We only need the district name and the town/city it serves — no student information.</p>
+<label class="pdq-label" for="pdq_district">District name</label>
+<input id="pdq_district" class="pdq-input" name="pdq_district" type="text" maxlength="120" autocomplete="off" required>
+<label class="pdq-label" for="pdq_town">Town / city</label>
+<input id="pdq_town" class="pdq-input" name="pdq_town" type="text" maxlength="120" autocomplete="off" required>
+<input name="pdq_website" type="text" value="" class="pdq-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<input name="pdq_ts" type="hidden" value="">
+<button type="submit" class="pdq-submit">Add to the queue</button>
+<span class="pdq-status" role="status" aria-live="polite"></span>
+<p class="pdq-nojs">JavaScript off? <a href="__MAILTO__">Email the district name and town</a> — it lands in the same queue.</p>
+<script>
+(function () {
+	"use strict";
+	var form = document.getElementById("pdq-form");
+	if (!form) { return; }
+	var status = form.querySelector(".pdq-status");
+	var stamp = function () {
+		var ts = form.elements["pdq_ts"];
+		if (ts) { ts.value = String(Math.floor(Date.now() / 1000)); }
+	};
+	stamp();
+	form.addEventListener("submit", function (e) {
+		e.preventDefault();
+		if (status) { status.textContent = "Adding…"; }
+		stamp();
+		fetch(form.action, {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams(new FormData(form)).toString()
+		}).then(function (r) { return r.json(); }).then(function (d) {
+			if (d && d.success) {
+				form.reset();
+				if (status) { status.textContent = "Queued. It will appear here at the next refresh."; }
+			} else if (status) {
+				status.textContent = (d && d.data && d.data.message) ||
+					"Not queued — reload the page and try again.";
+			}
+			stamp();
+		}).catch(function () {
+			if (status) { status.textContent = "Connection failed — please try again."; }
+		});
+	});
+})();
+</script>
+</form>
+</details>""".replace("__ENDPOINT__", QUEUE_ENDPOINT).replace("__MAILTO__", MAILTO_QUEUE)
 
 # Verbatim copy/paste template from
 # 03_PUBLIC_RECORDS_REQUEST_TEMPLATE.md (the fenced ```text block).
@@ -424,6 +481,26 @@ ENHANCEMENT_CSS = """<style>
 .pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
 .pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 @media (max-width:719px){.pssr-badge{white-space:normal}}
+/* Queue table + intake form */
+.pssr-queue{margin:1.25rem 0}
+.pssr-queue .pssr-qn{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);font-variant-numeric:tabular-nums}
+.pssr-queue .pssr-qdate{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pssr-queue .pssr-qcount{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
+.pssr-queue-form{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);margin:1.25rem 0 0}
+.pssr-queue-form summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
+.pssr-queue-form[open] summary{border-bottom:1px solid var(--pdf-line,#2a2a2a)}
+#pdq-form{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;padding:1rem 1.25rem 1.25rem;margin:0}
+#pdq-form .pdq-intro{flex:1 1 100%;margin:0;font-size:.875rem}
+#pdq-form .pdq-label{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
+#pdq-form .pdq-input{flex:1 1 12rem;min-width:0;max-width:22rem;background:var(--pdf-ink-1,#161616);border:1px solid var(--pdf-line,#2a2a2a);color:var(--pdf-paper,#f5f5f5);font-size:.875rem;padding:.625rem .875rem;border-radius:999px}
+#pdq-form .pdq-input:focus{outline:2px solid var(--pdf-signal,#ff5a1f);outline-offset:1px}
+.pdq-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+#pdq-form .pdq-submit{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;padding:.625rem 1.25rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
+#pdq-form .pdq-submit:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+#pdq-form .pdq-status{font-size:.8125rem;color:var(--pdf-signal-hi,#ffa366)}
+.pdq-nojs{flex:1 1 100%;margin:0;font-size:.8125rem;color:var(--pdf-mid,#a0a0a0)}
+.pdq-nojs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
+.pdq-nojs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
 </style>"""
 
 ENHANCEMENT_JS = """<script>
@@ -533,6 +610,25 @@ def sanitize(snapshot):
     return clean
 
 
+def queue_rows(rows, queue):
+    """Clean queue DB rows against tracker rows for rendering: drop entries
+    whose district or shared jurisdiction already appears in the tracker
+    (case-insensitive, trimmed); keep only still-queued rows; order by
+    first_requested ascending, then last_requested descending (newest active
+    tie-break)."""
+    known = set()
+    for r in rows:
+        known.add(str(r["district"]).strip().lower())
+        known.add(str(r["jurisdiction"]).strip().lower())
+    keep = [q for q in queue
+            if q.get("queued", 1)
+            and str(q["district"]).strip().lower() not in known
+            and str(q["jurisdiction"]).strip().lower() not in known]
+    keep.sort(key=lambda q: q["last_requested"], reverse=True)
+    keep.sort(key=lambda q: q["first_requested"])
+    return keep
+
+
 # ---- block builders -------------------------------------------------------
 
 def p(text, class_name=None):
@@ -592,7 +688,7 @@ def qa_group(question, answer):
     return group(inner, attrs=attrs)
 
 
-def build_blocks(project, rows, documents=()):
+def build_blocks(project, rows, documents=(), queue=()):
     total = len(rows)
     acknowledged = sum(1 for r in rows if r["status"] == "acknowledged")
     productions = sum(1 for r in rows if r.get("records_url"))
@@ -623,6 +719,7 @@ def build_blocks(project, rows, documents=()):
         buttons([
             ("Request Your District", MAILTO_REQUEST, False),
             ("Use the Public Records Template", "#template", True),
+            ("Queue a District", "#queue", True),
         ]),
         html_block(stats),
         p(f"Last updated: {updated}", class_name="pssr-updated"),
@@ -811,15 +908,49 @@ def build_blocks(project, rows, documents=()):
         blocks.append(group(appeals_inner))
 
     # 4c. Requested next -------------------------------------------------------
-    requested_inner = "\n".join([
-        h(2, "Requested next"),
-        p("These districts have been suggested by readers and are queued for the "
-          "same standardized request. Check the Live District Tracker above and "
-          "this list before requesting a district — if it appears in either "
-          "place, there is no need to request it again."),
-        ul(REQUESTED_NEXT),
+    if queue:
+        qhead = (
+            "<tr>"
+            '<th scope="col">#</th>'
+            '<th scope="col">District</th>'
+            '<th scope="col">First requested</th>'
+            '<th scope="col">Last requested</th>'
+            '<th scope="col">Times requested</th>'
+            '<th scope="col">Note</th>'
+            "</tr>"
+        )
+        qbody = []
+        for i, q in enumerate(queue, 1):
+            note = esc(q["note"]) if q.get("note") else "—"
+            qbody.append(
+                "<tr>"
+                f'<td class="pssr-qn" data-label="#">{i}</td>'
+                f'<td class="pssr-district" data-label="District">{esc(q["district"])}</td>'
+                f'<td class="pssr-qdate" data-label="First requested">{fmt_short(q["first_requested"])}</td>'
+                f'<td class="pssr-qdate" data-label="Last requested">{fmt_short(q["last_requested"])}</td>'
+                f'<td class="pssr-qcount" data-label="Times requested">{q["requested_count"]}</td>'
+                f'<td class="pssr-note" data-label="Note">{note}</td>'
+                "</tr>"
+            )
+        queue_block = (
+            '<!-- wp:table {"align":"wide","className":"pssr-queue pssr-table"} -->\n'
+            '<figure class="wp-block-table alignwide pssr-queue pssr-table"><table>'
+            f"<thead>{qhead}</thead>"
+            f"<tbody>{''.join(qbody)}</tbody>"
+            "</table></figure>\n"
+            "<!-- /wp:table -->"
+        )
+    else:
+        queue_block = p("Nothing in the queue yet — add your district below.")
+    queue_inner = "\n".join([
+        h(2, QUEUE_HEAD),
+        p(QUEUE_EXPLAIN),
+        queue_block,
+        buttons([("Donate", DONATE_URL, False)]),
+        p("Every donation buys more records requests."),
+        html_block(QUEUE_FORM_HTML),
     ])
-    blocks.append(group(requested_inner))
+    blocks.append(group(queue_inner, attrs='{"anchor":"queue"}', anchor="queue"))
 
     # 5. Request-your-district CTA -------------------------------------------
     cta_inner = "\n".join([
@@ -920,6 +1051,8 @@ def build_blocks(project, rows, documents=()):
         h(2, FOOTER_CTA),
         p(f'Email <a href="mailto:{contact}">{contact}</a> to request a district or '
           "report a correction."),
+        buttons([("Request Your District", MAILTO_REQUEST, False),
+                 ("Donate", DONATE_URL, False)]),
     ])
     blocks.append(group(footer_inner))
 

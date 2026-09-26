@@ -38,10 +38,12 @@
 				if ( Object.prototype.hasOwnProperty.call( attrs, k ) ) {
 					if ( 'className' === k ) {
 						n.className = attrs[ k ];
+					} else if ( 'text' === k ) {
+						n.textContent = attrs[ k ];
 					} else if ( k.indexOf( 'data-' ) === 0 ) {
 						n.setAttribute( k, attrs[ k ] );
 					} else if ( k.indexOf( 'on' ) === 0 ) {
-						n.addEventListener( k.slice( 2 ), attrs[ k ] );
+						n.addEventListener( k.slice( 2 ).toLowerCase(), attrs[ k ] );
 					} else {
 						n.setAttribute( k.replace( /[A-Z]/g, function ( c ) { return '-' + c.toLowerCase(); } ), attrs[ k ] );
 					}
@@ -515,9 +517,10 @@
 							return;
 						}
 						ta.value = '';
-						det.dataset.loaded = '';
-						det.open = true;
-						det.dispatchEvent( new Event( 'toggle' ) );
+						while ( thread.firstChild ) {
+							thread.removeChild( thread.firstChild );
+						}
+						loadThread( t, thread );
 					} );
 				}
 			}, 'Reply' );

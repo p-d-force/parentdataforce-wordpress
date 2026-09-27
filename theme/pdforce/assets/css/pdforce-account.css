@@ -252,3 +252,111 @@
 		display: block;
 	}
 }
+
+/* Ticket category cards */
+.pdex .pdex-cards {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	margin-bottom: 0.95rem;
+}
+
+.pdex .pdex-card {
+	display: block;
+	text-align: left;
+	background: var(--wp--preset--color--base, #0b0b0b);
+	border: 1px solid var(--wp--preset--color--accent-6, #1d1d1d);
+	color: var(--wp--preset--color--contrast, #f5f5f5);
+	border-radius: 10px;
+	padding: 0.7rem 0.9rem;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 0.92rem;
+	line-height: 1.45;
+}
+
+.pdex .pdex-card .pdex-card-t {
+	display: block;
+	font-weight: 600;
+	color: var(--wp--preset--color--accent-2, #ffa366);
+}
+
+.pdex .pdex-card .pdex-card-d {
+	display: block;
+	font-size: 0.8rem;
+	color: var(--wp--preset--color--accent-4, #a0a0a0);
+	margin-top: 0.15rem;
+}
+
+.pdex .pdex-card:hover {
+	border-color: var(--wp--preset--color--accent-4, #a0a0a0);
+}
+
+.pdex .pdex-card.on,
+.pdex .pdex-card.on:hover {
+	border-color: var(--wp--preset--color--accent-1, #ff5a1f);
+	outline: 1px solid var(--wp--preset--color--accent-1, #ff5a1f);
+}
+
+/* Profile form rows + checkbox rows (first-run chooser and details) */
+.pdex .pdex-check {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.6rem;
+}
+
+.pdex .pdex-check label {
+	display: inline;
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--wp--preset--color--contrast, #f5f5f5);
+	letter-spacing: 0;
+}
+
+.pdex .pdex-check input[type="checkbox"] {
+	width: 1.05rem;
+	height: 1.05rem;
+	flex: none;
+	accent-color: var(--wp--preset--color--accent-1, #ff5a1f);
+}
+
+.pdex .pdex-profile {
+	margin-top: 1.5rem;
+	border-top: 1px solid var(--wp--preset--color--accent-6, #1d1d1d);
+	padding-top: 0.6rem;
+}
+
+.pdex .pdex-profile summary {
+	cursor: pointer;
+	list-style: none;
+	font-weight: 600;
+	color: var(--wp--preset--color--accent-2, #ffa366);
+}
+
+.pdex .pdex-profile summary::-webkit-details-marker {
+	display: none;
+}
+
+.pdex .pdex-profile summary::before {
+	content: "\25B8";
+	color: var(--wp--preset--color--accent-4, #a0a0a0);
+	display: inline-block;
+	margin-right: 0.5rem;
+	transition: transform 0.15s ease;
+}
+
+.pdex .pdex-profile[open] summary::before {
+	transform: rotate( 90deg );
+	color: var(--wp--preset--color--accent-1, #ff5a1f);
+}
+
+.pdex .pdex-profile form {
+	margin-top: 0.8rem;
+}
+
+/* First-run chooser panel */
+.pdex h2 {
+	font-size: 1.4rem;
+	margin: 0.7rem 0 0.4rem;
+}

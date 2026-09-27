@@ -9,7 +9,7 @@
  *
  *              Repo copy: rest/pdforce-account-mu.php
  *              Deploys to /public_html/news/wp-content/mu-plugins/pdforce-account.php
- * Version:     1.0.3
+ * Version:     1.1.0
  * Author:      Parent Data Force
  * Text Domain: pdforce
  */
@@ -60,6 +60,21 @@ function pda_bootstrap_settings() {
 }
 
 /**
+ * One-time migration: everyone registered before the confirmation gate
+ * (v1.0.3 era) is trusted as already confirmed. Runs once, then flags.
+ */
+add_action( 'plugins_loaded', 'pda_backfill_verified' );
+function pda_backfill_verified() {
+	if ( '1' === get_option( 'pda_all_verified' ) ) {
+		return;
+	}
+	foreach ( get_users( array( 'fields' => 'ID' ) ) as $uid ) {
+		update_user_meta( (int) $uid, 'pdforce_verified', 1 );
+	}
+	update_option( 'pda_all_verified', '1' );
+}
+
+/**
  * First-comment moderation for registered commenters: a user's first
  * comment is held; once any of their comments is approved, the rest are
  * auto-approved. Post authors / editors keep their native approval path.
@@ -86,6 +101,89 @@ function pda_first_comment_held( $approved, $commentdata ) {
 	);
 	return $count ? $approved : 0; // 0 = hold
 }
+
+/**
+ * Comment byline privacy, at rest. Live WP 7.1.2 signature verified over
+ * FTP before deploy: pre_comment_author_name fires in wp_filter_comment
+ * with a single string arg; get_comment_author fires with
+ * ( $author, $comment_id, $comment ).
+ */
+add_filter( 'pre_comment_author_name', 'pda_byline_store' );
+function pda_byline_store( $author ) {
+	$uid = get_current_user_id();
+	// Staff edits (approve etc.) and anonymous writes keep the byline.
+	if ( ! $uid || current_user_can( 'edit_others_posts' ) ) {
+		return $author;
+	}
+	if ( 0 !== (int) get_user_meta( $uid, 'pdforce_show_name', true ) ) {
+		return $author;
+	}
+	$user = get_userdata( $uid );
+	// Only anonymize the writer's OWN byline — never an admin-side update
+	// of someone else's comment (filters fire on update too).
+	if ( $user && (string) wp_unslash( $author ) === (string) $user->display_name ) {
+		return 'Anonymous'; // privacy at rest: real name never stored publicly
+	}
+	return $author;
+}
+
+add_filter( 'get_comment_author', 'pda_byline_display', 10, 3 );
+function pda_byline_display( $author, $comment_id, $comment ) {
+	if ( ! $comment instanceof WP_Comment ) {
+		$comment = get_comment( $comment_id );
+	}
+	if ( ! $comment || empty( $comment->user_id ) ) {
+		return $author;
+	}
+	$uid      = (int) $comment->user_id;
+	$role     = trim( (string) get_user_meta( $uid, 'pdforce_role', true ) );
+	$district = trim( (string) get_user_meta( $uid, 'pdforce_district', true ) );
+	$bits     = array();
+	if ( (int) get_user_meta( $uid, 'pdforce_show_role', true ) && '' !== $role ) {
+		$bits[] = ucfirst( $role );
+	}
+	if ( (int) get_user_meta( $uid, 'pdforce_show_district', true ) && '' !== $district ) {
+		$bits[] = $district;
+	}
+	if ( ! $bits ) {
+		return $author;
+	}
+	return $author . ' (' . implode( ' · ', $bits ) . ')';
+}
+
+/**
+ * Subscriber lockdown: staff keep the admin bar, subscribers lose it;
+ * wp-admin itself bounces anyone below edit_posts to the account page.
+ */
+add_filter( 'show_admin_bar', 'pda_maybe_hide_admin_bar' );
+function pda_maybe_hide_admin_bar( $show ) {
+	return current_user_can( 'edit_others_posts' );
+}
+
+add_action( 'admin_init', 'pda_block_wp_admin' );
+function pda_block_wp_admin() {
+	if ( wp_doing_ajax() || wp_doing_cron() || current_user_can( 'edit_posts' ) ) {
+		return;
+	}
+	wp_safe_redirect( home_url( '/account/' ) );
+	exit;
+}
+
+/** Brand wp-login.php (the one surface REST does not cover). */
+add_action( 'login_enqueue_scripts', 'pda_login_brand' );
+function pda_login_brand() {
+	$css = 'body.login{background:#0b0b0b!important}'
+		. 'body.login a{color:#ffa366!important}'
+		. 'body.login h1 a{background-image:url(https://www.parentdataforce.com/wp-content/uploads/brand/logo.png)!important;background-size:contain;background-position:center;width:220px;height:84px;}'
+		. '.login form{background:#f5f5f5;border:none;border-radius:10px;}'
+		. '.login form .input,.login input[type=text]{background:#0b0b0b!important;color:#f5f5f5!important;border-color:#1d1d1d!important;}'
+		. '#loginform label{color:#0b0b0b;}'
+		. '.login .button-primary{background:#ff5a1f!important;border-color:#ff5a1f!important;color:#0b0b0b!important;text-shadow:none;}'
+		. '.login .button-primary:hover{background:#ffa366!important;}'
+		. '.login .message,.login #login_error{border-left-color:#ff5a1f;}';
+	wp_add_inline_style( 'login', $css );
+}
+add_filter( 'login_headertext', function () { return 'Parent Data Force'; } );
 
 /**
  * Private, REST-visible ticket CPT. Owner-level reporting: wp-admin list
@@ -271,6 +369,66 @@ function pda_register_routes() {
 			'callback'            => 'pda_handle_ticket_status',
 		)
 	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/confirm',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => 'pda_handle_confirm',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/resend',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => 'pda_handle_resend',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/forgot',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => 'pda_handle_forgot',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/password-reset',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => 'pda_handle_password_reset',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/profile',
+		array(
+			'methods'             => 'GET',
+			'permission_callback' => 'pda_req_logged_in',
+			'callback'            => 'pda_handle_profile_get',
+		)
+	);
+
+	register_rest_route(
+		'pdforce/v1',
+		'/profile',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => 'pda_req_logged_in',
+			'callback'            => 'pda_handle_profile_save',
+		)
+	);
 }
 
 /** Permission: logged in (cookie + REST nonce validated by core first). */
@@ -314,6 +472,68 @@ function pda_gate_bot( $request ) {
 	if ( $ts < time() - PDA_TIME_FLOOR || $ts > time() + PDA_TIME_CEIL ) {
 		wp_send_json_error( null, 400 );
 	}
+}
+
+/**
+ * Themed HTML mail shell: 600px table, dark header band with orange
+ * accent, white body, system fonts, orange CTA button. No images.
+ * All CTA URLs are passed through esc_url at call sites; text is
+ * escaped at insertion points.
+ */
+function pda_mail_html( $title, $body_html, $cta_url, $cta_label ) {
+	$cta = '';
+	if ( $cta_url && $cta_label ) {
+		$cta = '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px auto 4px;"><tr><td align="center" bgcolor="#ff5a1f" style="border-radius:999px;"><a href="' . esc_url( $cta_url ) . '" style="display:inline-block;background:#ff5a1f;color:#0b0b0b;font-weight:bold;font-size:16px;padding:12px 30px;border-radius:999px;text-decoration:none;">' . esc_html( $cta_label ) . '</a></td></tr></table>';
+	}
+	return '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+		. '<body style="margin:0;padding:0;background:#f5f5f5;">'
+		. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 12px;"><tr><td align="center">'
+		. '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;background:#ffffff;border-radius:10px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
+		. '<tr><td style="background:#0b0b0b;padding:22px 28px 18px;">'
+		. '<div style="width:44px;height:4px;background:#ff5a1f;border-radius:2px;margin-bottom:12px;"></div>'
+		. '<div style="color:#f5f5f5;font-size:19px;font-weight:600;">' . esc_html( $title ) . '</div>'
+		. '</td></tr>'
+		. '<tr><td style="padding:24px 28px 8px;color:#0b0b0b;font-size:15px;line-height:1.6;">' . $body_html . '</td></tr>'
+		. $cta
+		. '<tr><td style="padding:20px 28px 24px;"><div style="height:1px;background:#e5e5e5;margin-bottom:12px;"></div>'
+		. '<div style="color:#a0a0a0;font-size:12px;">Parent Data Force &middot; parentdataforce.com</div></td></tr>'
+		. '</table></td></tr></table></body></html>';
+}
+
+/** Send one HTML email via wp_mail, forcing text/html for this call only. */
+function pda_send_member_mail( $to, $subject, $html ) {
+	$html_type = function () { return 'text/html'; };
+	add_filter( 'wp_mail_content_type', $html_type );
+	$ok = wp_mail( $to, $subject, $html );
+	remove_filter( 'wp_mail_content_type', $html_type );
+	return $ok;
+}
+
+/** Site-wide sender identity: pushes to inbox without the WordPress-name spam tax. */
+add_filter( 'wp_mail_from', function () { return 'joey@parentdataforce.com'; } );
+add_filter( 'wp_mail_from_name', function () { return 'Parent Data Force'; } );
+
+/**
+ * Core reset-request email, themed. Live WP 7.1.2 signature verified over
+ * FTP before deploy: apply_filters( 'retrieve_password_notification_email',
+ * $defaults, $key, $user_login, $user_data ) — defaults is an ARRAY
+ * ({to,subject,message,headers}); the handler returns the array.
+ */
+add_filter( 'retrieve_password_notification_email', 'pda_reset_email', 10, 4 );
+function pda_reset_email( $defaults, $key, $user_login, $user_data ) {
+	$reset = home_url(
+		'/account/reset/?key=' . urlencode( $key ) . '&login=' . urlencode( $user_login )
+	);
+	$first = $user_data && ! empty( $user_data->display_name )
+		? $user_data->display_name
+		: 'there';
+	$body  = '<p style="margin:0 0 12px;">Hi ' . esc_html( $first ) . ',</p>'
+		. '<p style="margin:0 0 12px;"><strong>' . esc_html( $user_login ) . '</strong> requested a password reset. Use the button below to choose a new password. The link works once and expires after a day for security.</p>'
+		. '<p style="margin:0;color:#a0a0a0;font-size:13px;">If this was not you, ignore this email — your password stays as it is.</p>'
+		. '<p style="margin:12px 0 0;word-break:break-all;color:#a0a0a0;font-size:13px;">Button not working? Paste this link into your browser:<br>' . esc_url( $reset ) . '</p>';
+	$defaults['subject'] = 'Reset your Parent Data Force password';
+	$defaults['message'] = pda_mail_html( 'Reset your password', $body, $reset, 'Choose a new password' );
+	return $defaults;
 }
 
 /** Hashed-IP key helper. */
@@ -438,25 +658,150 @@ function pda_handle_register( $request ) {
 	update_user_meta( $user_id, 'pdforce_role', $role );
 	update_user_meta( $user_id, 'pdforce_district', $district );
 	set_transient( $rkey, 1 + (int) get_transient( $rkey ), HOUR_IN_SECONDS );
-	// Account email (welcome/no password reset forced): same wp_mail path
-	// as ticket pings; deliverability checked honestly at deploy time.
-	wp_new_user_notification( $user_id, null, 'user' );
 
-	wp_set_current_user( $user_id );
-	pda_set_session_and_nonce( $user_id, true );
+	// Hard email confirmation gate: no session until the link is clicked.
+	$token = wp_generate_password( 32, false );
+	update_user_meta( $user_id, 'pdforce_verified', 0 );
+	update_user_meta( $user_id, 'pdforce_confirm_key', hash( 'sha256', $token ) );
+	update_user_meta( $user_id, 'pdforce_confirm_exp', time() + 2 * DAY_IN_SECONDS );
 
-	$redirect = pda_sanitize_redirect( $request['redirect_to'] ?? '' );
+	$confirm_link = add_query_arg(
+		rawurlencode_deep( array( 'key' => $token, 'login' => $login ) ),
+		home_url( '/account/confirm/' )
+	);
+	$confirm_body  = '<p style="margin:0 0 12px;">Welcome to Parent Data Force.</p>'
+		. '<p style="margin:0 0 12px;">One click left: confirm <strong>' . esc_html( $email ) . '</strong> to open your account. The link expires in 48 hours — after that you can request a fresh one from the page.</p>'
+		. '<p style="margin:0;color:#a0a0a0;font-size:13px;">If you did not sign up for this, ignore this email and the address will not be used.</p>'
+		. '<p style="margin:12px 0 0;word-break:break-all;color:#a0a0a0;font-size:13px;">Button not working? Paste this link into your browser:<br>' . esc_url( $confirm_link ) . '</p>';
+	pda_send_member_mail(
+		$email,
+		'Confirm your Parent Data Force account',
+		pda_mail_html( 'Confirm your account', $confirm_body, $confirm_link, 'Confirm my account' )
+	);
+
+	$admin_body = 'New member registration on ' . home_url() . "\n\n"
+		. 'Display name: ' . $display . "\n"
+		. 'Email: ' . $email . "\n"
+		. 'District: ' . ( $district !== '' ? $district : '(none)' ) . "\n"
+		. 'Role: ' . ( $role !== '' ? $role : '(none)' ) . "\n"
+		. 'Time: ' . date_i18n( 'Y-m-d H:i:s T' );
+	wp_mail(
+		get_option( 'admin_email', 'joey@parentdataforce.com' ),
+		'[PD Force] New member: ' . $display,
+		$admin_body
+	);
+
+	// No auto-login, no nonce in the body: the reader proves control of
+	// the inbox on the confirm screen.
 	wp_send_json_success(
 		array(
-			'user_id'     => $user_id,
+			'confirmed'   => false,
+			'message'     => 'Check your email — click the link to confirm your account.',
+			'email'       => $email,
 			'display_name'=> $display,
-			'nonce'       => pda_session_nonce(),
-			'redirect_to' => $redirect ? $redirect : home_url( '/account/' ),
 		),
 		201
 	);
 }
 
+/**
+ * POST /pdforce/v1/confirm — public. Hash-compares SHA256(token) against
+ * the stored confirm key, flips pdforce_verified to 1, auto-logs the
+ * reader in (session + REST nonce minted together) and hands back the
+ * dashboard redirect.
+ */
+function pda_handle_confirm( $request ) {
+	pda_gate_bot( $request );
+
+	$login = sanitize_user( (string) $request['login'], true );
+	$user  = $login ? get_user_by( 'login', $login ) : false;
+	if ( ! $user ) {
+		wp_send_json_error( array( 'message' => 'That confirm link is invalid or expired. Send it again.' ), 400 );
+	}
+
+	if ( 1 === (int) get_user_meta( $user->ID, 'pdforce_verified', true ) ) {
+		wp_send_json_success(
+			array(
+				'already' => true,
+				'message' => 'Already confirmed — log in below.',
+			)
+		);
+	}
+
+	$stored = (string) get_user_meta( $user->ID, 'pdforce_confirm_key', true );
+	$exp    = (int) get_user_meta( $user->ID, 'pdforce_confirm_exp', true );
+	if ( '' === $stored
+		|| ! hash_equals( $stored, hash( 'sha256', (string) $request['key'] ) )
+		|| $exp < time()
+	) {
+		wp_send_json_error( array( 'message' => 'That confirm link is invalid or expired. Send it again.' ), 400 );
+	}
+
+	update_user_meta( $user->ID, 'pdforce_verified', 1 );
+	delete_user_meta( $user->ID, 'pdforce_confirm_key' );
+	delete_user_meta( $user->ID, 'pdforce_confirm_exp' );
+	pda_set_session_and_nonce( $user->ID, true );
+
+	wp_send_json_success(
+		array(
+			'user_id'      => $user->ID,
+			'display_name' => $user->display_name,
+			'nonce'        => pda_session_nonce(),
+			'redirect_to'  => home_url( '/account/' ),
+		)
+	);
+}
+
+/**
+ * POST /pdforce/v1/resend — public, throttled 1 per IP per 15 min.
+ * Generic success either way: never reveals which emails exist here.
+ */
+function pda_handle_resend( $request ) {
+	pda_gate_bot( $request );
+
+	$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+	$ikey = 'pda_resend_' . md5( $ip );
+	if ( (int) get_transient( $ikey ) >= PDA_REG_LIMIT ) {
+		wp_send_json_error( array( 'message' => 'Too many requests. Try again soon.' ), 429 );
+	}
+	set_transient( $ikey, 1 + (int) get_transient( $ikey ), 15 * MINUTE_IN_SECONDS );
+
+	$email = sanitize_email( wp_unslash( (string) ( $request['email'] ?? '' ) ) );
+	if ( is_email( $email ) ) {
+		$ekey = 'pda_resende_' . md5( $email );
+		if ( get_transient( $ekey ) ) {
+			wp_send_json_error( array( 'message' => 'Too many requests. Try again soon.' ), 429 );
+		}
+		$user = get_user_by( 'email', $email );
+		if ( $user && 0 === (int) get_user_meta( $user->ID, 'pdforce_verified', true ) ) {
+			$token = wp_generate_password( 32, false );
+			update_user_meta( $user->ID, 'pdforce_confirm_key', hash( 'sha256', $token ) );
+			update_user_meta( $user->ID, 'pdforce_confirm_exp', time() + 2 * DAY_IN_SECONDS );
+
+			$confirm_link = add_query_arg(
+				rawurlencode_deep( array( 'key' => $token, 'login' => $user->user_login ) ),
+				home_url( '/account/confirm/' )
+			);
+			$confirm_first = (string) $user->display_name !== (string) $user->user_login
+				? (string) $user->display_name
+				: 'there';
+			$confirm_body = '<p style="margin:0 0 12px;">Hi ' . esc_html( $confirm_first ) . ',</p>'
+				. '<p style="margin:0 0 12px;">Here is a fresh confirmation link for your Parent Data Force account. It expires in 48 hours.</p>'
+				. '<p style="margin:0;color:#a0a0a0;font-size:13px;">If you did not sign up for this, ignore this email and the address will not be used.</p>'
+				. '<p style="margin:12px 0 0;word-break:break-all;color:#a0a0a0;font-size:13px;">Button not working? Paste this link into your browser:<br>' . esc_url( $confirm_link ) . '</p>';
+			pda_send_member_mail(
+				$email,
+				'Confirm your Parent Data Force account',
+				pda_mail_html( 'Confirm your account', $confirm_body, $confirm_link, 'Confirm my account' )
+			);
+			set_transient( $ekey, 1, 15 * MINUTE_IN_SECONDS );
+		}
+	}
+
+	wp_send_json_success(
+		array( 'message' => 'If that email still needs confirming, a fresh link is on its way.' )
+	);
+}
 /**
  * POST /pdforce/v1/login
  * Body: log (login or email), pwd, remember, redirect_to.
@@ -485,6 +830,14 @@ function pda_handle_login( $request ) {
 		}
 	}
 
+	// Email-confirmation gate: unconfirmed accounts cannot log in. This
+	// response is itself the "resend" hint; it discloses only the
+	// existence of UNCONFIRMED accounts (accepted tradeoff).
+	$probe = get_user_by( 'login', $identity );
+	if ( $probe && '0' === (string) get_user_meta( $probe->ID, 'pdforce_verified', true ) ) {
+		wp_send_json_error( array( 'message' => 'Confirm your account first — check your email for the link.' ), 403 );
+	}
+
 	$user = wp_authenticate( $identity, $pwd );
 	if ( is_wp_error( $user ) || ! $user instanceof WP_User ) {
 		set_transient( $fkey, 1 + (int) get_transient( $fkey ), 15 * MINUTE_IN_SECONDS );
@@ -511,6 +864,133 @@ function pda_handle_logout() {
 }
 
 /**
+ * POST /pdforce/v1/forgot — public, 5/hour/IP. Reuses core's
+ * retrieve_password() (key mint + core notification filter above);
+ * response is generic either way (no enumeration).
+ */
+function pda_handle_forgot( $request ) {
+	pda_gate_bot( $request );
+
+	$tkey = pda_ip_key( 'pda_forgot_' );
+	$seen = (int) get_transient( $tkey );
+	if ( $seen >= PDA_REG_LIMIT ) {
+		wp_send_json_error( array( 'message' => 'Too many requests. Try again soon.' ), 429 );
+	}
+	set_transient( $tkey, 1 + $seen, HOUR_IN_SECONDS );
+
+	$identity = sanitize_text_field( wp_unslash( (string) ( $request['email'] ?? '' ) ) );
+	$user     = false;
+	if ( is_email( $identity ) ) {
+		$user = get_user_by( 'email', $identity );
+	}
+	if ( ! $user && '' !== $identity ) {
+		$user = get_user_by( 'login', sanitize_user( $identity, true ) );
+	}
+	// Unconfirmed accounts: no reset mail (a reset would bypass the
+	// confirmation gate); the response stays generic either way.
+	if ( $user && 1 === (int) get_user_meta( $user->ID, 'pdforce_verified', true ) ) {
+		retrieve_password( $user->user_login );
+	}
+
+	wp_send_json_success(
+		array( 'message' => 'If an account exists for that email, a reset link is on its way.' )
+	);
+}
+
+/**
+ * POST /pdforce/v1/password-reset — public. Core mechanics reused:
+ * check_password_reset_key() validates the activation key; wp_set_password()
+ * stores the new hash and clears the key (single-use).
+ */
+function pda_handle_password_reset( $request ) {
+	pda_gate_bot( $request );
+
+	$password = (string) ( $request['password'] ?? '' );
+	if ( strlen( $password ) < 8 ) {
+		wp_send_json_error( array( 'message' => 'Password must be at least 8 characters.' ), 400 );
+	}
+	if ( strlen( $password ) > 64 ) {
+		wp_send_json_error( array( 'message' => 'Password is too long.' ), 400 );
+	}
+
+	$user = check_password_reset_key(
+		(string) ( $request['key'] ?? '' ),
+		sanitize_user( (string) ( $request['login'] ?? '' ), true )
+	);
+	if ( is_wp_error( $user ) || ! $user instanceof WP_User ) {
+		wp_send_json_error( array( 'message' => 'That reset link is invalid or expired. Request a new one.' ), 400 );
+	}
+	if ( 0 === (int) get_user_meta( $user->ID, 'pdforce_verified', true ) ) {
+		// Unconfirmed account: a reset would bypass the confirm gate.
+		wp_send_json_error( array( 'message' => 'Confirm your account first — check your email for the link.' ), 403 );
+	}
+
+	wp_set_password( $password, $user->ID );
+	pda_set_session_and_nonce( $user->ID, true );
+
+	wp_send_json_success(
+		array(
+			'user_id'      => $user->ID,
+			'display_name' => $user->display_name,
+			'nonce'        => pda_session_nonce(),
+			'redirect_to'  => home_url( '/account/' ),
+		)
+	);
+}
+
+/** GET /pdforce/v1/profile — own profile + privacy toggles. */
+function pda_handle_profile_get() {
+	pda_profile_payload( get_current_user_id() );
+}
+
+/** Shared GET/POST response shape for /pdforce/v1/profile. */
+function pda_profile_payload( $uid ) {
+	$user = get_userdata( $uid );
+	wp_send_json_success(
+		array(
+			'display_name'  => $user ? (string) $user->display_name : '',
+			'role'          => (string) get_user_meta( $uid, 'pdforce_role', true ),
+			'district'      => (string) get_user_meta( $uid, 'pdforce_district', true ),
+			'show_name'     => (int) get_user_meta( $uid, 'pdforce_show_name', true ),
+			'show_role'     => (int) get_user_meta( $uid, 'pdforce_show_role', true ),
+			'show_district' => (int) get_user_meta( $uid, 'pdforce_show_district', true ),
+			'privacy_set'   => (int) get_user_meta( $uid, 'pdforce_privacy_set', true ),
+		)
+	);
+}
+
+/**
+ * POST /pdforce/v1/profile — updates the member's profile and always
+ * stamps pdforce_privacy_set=1 (first-run chooser → dashboard).
+ */
+function pda_handle_profile_save( $request ) {
+	$uid = get_current_user_id();
+
+	$user    = get_userdata( $uid );
+	$display = pda_clip( $request['display_name'] ?? '', PDA_MAX_NAME );
+	if ( '' === $display && $user ) {
+		$display = (string) $user->display_name;
+	}
+	$role     = pda_clip( $request['pdforce_role'] ?? '', PDA_MAX_ROLE );
+	$district = pda_clip( $request['pdforce_district'] ?? '', PDA_MAX_DISTRICT );
+
+	wp_update_user(
+		array(
+			'ID'           => $uid,
+			'display_name' => $display,
+		)
+	);
+	update_user_meta( $uid, 'pdforce_role', $role );
+	update_user_meta( $uid, 'pdforce_district', $district );
+	update_user_meta( $uid, 'pdforce_show_name', (int) ! empty( $request['show_name'] ) );
+	update_user_meta( $uid, 'pdforce_show_role', (int) ! empty( $request['show_role'] ) );
+	update_user_meta( $uid, 'pdforce_show_district', (int) ! empty( $request['show_district'] ) );
+	update_user_meta( $uid, 'pdforce_privacy_set', 1 );
+
+	pda_profile_payload( $uid );
+}
+
+/**
  * POST /pdforce/v1/ticket — create a private ticket (author = current user).
  */
 function pda_handle_ticket_create( $request ) {
@@ -528,7 +1008,7 @@ function pda_handle_ticket_create( $request ) {
 	}
 
 	$kind = pda_clip( $request['t_kind'] ?? '', 20 );
-	if ( ! in_array( $kind, array( 'data', 'question', 'correction', 'other' ), true ) ) {
+	if ( ! in_array( $kind, array( 'question', 'evidence', 'help', 'correction', 'other' ), true ) ) {
 		$kind = 'other';
 	}
 	$subject = pda_clip( $request['t_subject'] ?? '', PDA_MAX_SUBJECT );
@@ -631,9 +1111,18 @@ function pda_handle_ticket_get( $request ) {
 			'order'      => 'ASC',
 		)
 	) as $c ) {
+		// Ticket threads stay real-name even when the author's public
+		// comment byline is 'Anonymous' (privacy at rest).
+		$t_author = (string) $c->comment_author;
+		if ( ! empty( $c->user_id ) ) {
+			$cu = get_userdata( (int) $c->user_id );
+			if ( $cu ) {
+				$t_author = (string) $cu->display_name;
+			}
+		}
 		$comments[] = array(
 			'id'       => (int) $c->comment_ID,
-			'author'   => (string) $c->comment_author,
+			'author'   => $t_author,
 			'is_owner' => $can_edit_others && (int) $c->user_id !== (int) $ticket->post_author,
 			'date'     => str_replace( '+00:00', 'Z', gmdate( 'c', strtotime( $c->comment_date_gmt . ' GMT' ) ) ),
 			// wpautop'd text: safe to place in innerHTML, but JS still uses textContent for author/date.
@@ -744,12 +1233,12 @@ function pda_handle_ticket_status( $request ) {
 /**
  * Account pages + single posts: enqueue the theme JS (localized with the
  * REST URL, a fresh REST nonce only when logged in, and per-page state);
- * CSS goes only on the four account pages.
+ * CSS goes only on the six account pages.
  */
 if ( ! function_exists( 'pda_enqueue_account_assets' ) ) :
 	function pda_enqueue_account_assets() {
 		$which = '';
-		foreach ( array( 'account', 'register', 'login', 'ticket' ) as $slug ) {
+		foreach ( array( 'account', 'register', 'login', 'ticket', 'confirm', 'reset' ) as $slug ) {
 			if ( is_page( $slug ) ) {
 				$which = $slug;
 				break;
@@ -769,6 +1258,8 @@ if ( ! function_exists( 'pda_enqueue_account_assets' ) ) :
 			'registerUrl' => esc_url_raw( home_url( '/account/register/' ) ),
 			'loginUrl'    => esc_url_raw( home_url( '/account/login/' ) ),
 			'ticketUrl'   => esc_url_raw( home_url( '/account/ticket/' ) ),
+			'confirmUrl'  => esc_url_raw( home_url( '/account/confirm/' ) ),
+			'resetUrl'    => esc_url_raw( home_url( '/account/reset/' ) ),
 		);
 		if ( $which ) {
 			wp_enqueue_style(
@@ -794,7 +1285,7 @@ add_action( 'wp_enqueue_scripts', 'pda_enqueue_account_assets' );
 add_filter( 'body_class', 'pda_body_classes' );
 function pda_body_classes( $classes ) {
 	$which = '';
-	foreach ( array( 'account', 'register', 'login', 'ticket' ) as $slug ) {
+	foreach ( array( 'account', 'register', 'login', 'ticket', 'confirm', 'reset' ) as $slug ) {
 		if ( is_page( $slug ) ) {
 			$which = $slug;
 			break;

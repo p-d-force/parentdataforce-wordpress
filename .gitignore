@@ -5,6 +5,7 @@ credentials.json
 *.pem
 rest/ga_oauth_client_secret.json
 rest/ga_oauth_token.json
+rest/firebase_hosting_token.json
 
 # WordPress core mirror (regenerated via tools)
 wordpress-copy/
@@ -31,3 +32,6 @@ theme/pdforce/twentytwentyfive/
 
 # Local agent session state (Mnemopi/local:// artifacts)
 .omp/
+
+# Dated tracker snapshots (regenerated via settlements_db.py export-json; DB is authoritative)
+districts_snapshot_*.json

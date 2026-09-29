@@ -76,9 +76,112 @@ STATUS_BADGES = {
 
 DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal"}
 
-# Reader-suggested queue for future standardized requests. Reader identities are
-# deliberately not recorded here (one requester asked for anonymity).
-REQUESTED_NEXT = ()
+# Reader-request queue constants (mirroring tools/build_settlements_page.py; the
+# intake form posts with pdq_state=ga so the mu-plugin stores GA-prefixed
+# posts. Reader identities are deliberately not recorded).
+QUEUE_HEAD = "Requested next"
+QUEUE_EXPLAIN = (
+    "This list is ranked by reader votes — the more ▲ a district has, the "
+    "higher it sits, and the top of the list is the next standard request "
+    "when staff time opens up. New districts start at the bottom and climb "
+    "as readers vote. Check the Live District Tracker above and this list "
+    "before requesting a district — if a district is already tracked or "
+    "queued, there's no need to request it again."
+)
+QUEUE_VOTE_HINT = "Not near the top yet? Open a district's card and tap ▲ to vote it up — every vote moves it up the list."
+DONATE_URL = "https://www.parentdataforce.com/donate/"
+QUEUE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue"
+QUEUE_VOTE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue/vote"
+MAILTO_QUEUE = (
+    "mailto:ga@parentdataforce.com"
+    "?subject=Please%20add%20my%20district%20to%20the%20Student%20Settlement%20Records%20Project"
+    "&body=District%3A%0ATown%3A%0AQueue%3A%20yes"
+)
+QUEUE_FORM_HTML = """<details class="pssr-queue-form">
+<summary>Queue a district</summary>
+<form id="pdq-form" action="__ENDPOINT__" method="post">
+<p class="pdq-intro">Add a district to the request queue. We only need the district name and the town/city it serves — no student information.</p>
+<label class="pdq-label" for="pdq_district">District name</label>
+<input id="pdq_district" class="pdq-input" name="pdq_district" type="text" maxlength="120" autocomplete="off" required>
+<label class="pdq-label" for="pdq_town">Town / city</label>
+<input id="pdq_town" class="pdq-input" name="pdq_town" type="text" maxlength="120" autocomplete="off" required>
+<input name="pdq_state" type="hidden" value="ga">
+<input name="pdq_website" type="text" value="" class="pdq-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<input name="pdq_ts" type="hidden" value="">
+<button type="submit" class="pdq-submit">Add to the queue</button>
+<span class="pdq-status" role="status" aria-live="polite"></span>
+<p class="pdq-nojs">JavaScript off? <a href="__MAILTO__">Email the district name and town</a> — it lands in the same queue.</p>
+<script>
+(function () {
+	"use strict";
+	var form = document.getElementById("pdq-form");
+	if (!form) { return; }
+	var status = form.querySelector(".pdq-status");
+	var stamp = function () {
+		var ts = form.elements["pdq_ts"];
+		if (ts) { ts.value = String(Math.floor(Date.now() / 1000)); }
+	};
+	stamp();
+	form.addEventListener("submit", function (e) {
+		e.preventDefault();
+		if (status) { status.textContent = "Adding…"; }
+		stamp();
+		fetch(form.action, {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams(new FormData(form)).toString()
+		}).then(function (r) { return r.json(); }).then(function (d) {
+			if (d && d.success) {
+				form.reset();
+				if (status) { status.textContent = "Queued. It will appear here at the next refresh."; }
+			} else if (status) {
+				status.textContent = (d && d.data && d.data.message) ||
+					"Not queued — reload the page and try again.";
+			}
+			stamp();
+		}).catch(function () {
+			if (status) { status.textContent = "Connection failed — please try again."; }
+		});
+	});
+})();
+</script>
+</form>
+</details>
+<script>
+(function () {
+	"use strict";
+	var buttons = document.querySelectorAll(".pdq-vote");
+	if (!buttons.length) { return; }
+	var endpoint = "__VOTE_ENDPOINT__";
+	Array.prototype.forEach.call(buttons, function (btn) {
+		btn.addEventListener("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			if (btn.disabled) { return; }
+			btn.disabled = true;
+			var row = btn.closest(".pssr-row");
+			var span = row ? row.querySelector(".pssr-s-votes") : null;
+			var count = span ? (parseInt(span.textContent.replace(/\\D+/g, ""), 10) || 0) : 0;
+			fetch(endpoint, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: "pdq_district=" + encodeURIComponent(btn.getAttribute("data-district")) +
+					"&pdq_state=ga" +
+					"&pdq_ts=" + String(Math.floor(Date.now() / 1000)) +
+					"&pdq_website="
+			}).then(function (r) { return r.json(); }).then(function (d) {
+				if (d && d.success) {
+					if (span) { span.textContent = "▲ " + (count + 1); }
+					btn.classList.add("pdq-voted");
+					btn.disabled = true;
+				} else {
+					btn.disabled = false;
+				}
+			}).catch(function () { btn.disabled = false; });
+		});
+	});
+})();
+</script>""".replace("__ENDPOINT__", QUEUE_ENDPOINT).replace("__MAILTO__", MAILTO_QUEUE).replace("__VOTE_ENDPOINT__", QUEUE_VOTE_ENDPOINT)
 
 # Georgia Open Records Act request template, modeled on the Massachusetts
 # project's structure (subject line, records window, records list and
@@ -364,48 +467,37 @@ ENHANCEMENT_CSS = """<style>
 .pssr-search:focus{outline:2px solid var(--pdf-signal,#ff5a1f);outline-offset:1px}
 .pssr-tabs{margin:0;padding:0;max-width:none}
 .pssr-count{margin:0 0 .9rem;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
-.pssr-table{overflow-x:auto}
-.pssr-table table{border-collapse:collapse;font-size:.9375rem;line-height:1.4;margin:0}
-.pssr-table table,.pssr-table thead,.pssr-table tbody,.pssr-table tr,.pssr-table td,.pssr-table th{border:0}
-.pssr-table thead th{padding:.75rem;font-family:var(--pdf-mono,monospace);font-size:.6875rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);text-align:left;vertical-align:bottom;border-bottom:1px solid var(--pdf-mid,#a0a0a0);white-space:nowrap}
-.pssr-table tbody td{padding:.7rem .75rem;border-bottom:1px solid var(--pdf-line,#2a2a2a);vertical-align:top}
-.pssr-table tbody tr:nth-child(even) td{background:rgba(245,245,245,.03)}
-.pssr-table tbody tr:hover td{background:var(--pdf-ink-1,#161616)}
-.pssr-district{font-weight:600;min-width:12rem}
-.pssr-timeline{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
-.pssr-timeline .pssr-expected{color:var(--pdf-paper,#f5f5f5)}
-.pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
-.pssr-status{min-width:10rem}
-.pssr-status .pssr-badge{margin:0 .35rem .35rem 0}
-.pssr-note{font-size:.875rem;color:rgba(245,245,245,.92);min-width:16rem;max-width:26rem}
-.pssr-docs{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
-.pssr-docs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
-.pssr-docs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
-.pssr-docsep{color:var(--pdf-line,#2a2a2a);padding:0 .3rem}
-@media (min-width:900px){
-\t.pssr-table{overflow:visible}
-\t.pssr-table thead th{position:sticky;top:0;z-index:2;background:var(--pdf-ink-0,#0b0b0b)}
-}
-@media (max-width:719px){
-\t.pssr-controls{flex-direction:column;align-items:stretch}
-\t.pssr-search{flex-basis:auto;max-width:none}
-\t.pssr-table{overflow:visible}
-\t.pssr-table table,.pssr-table tbody,.pssr-table tr,.pssr-table td{display:block;width:100%}
-\t.pssr-table thead{display:none}
-\t.pssr-table tbody tr{border:1px solid var(--pdf-line,#2a2a2a);border-radius:10px;background:var(--pdf-ink-1,#161616);padding:.4rem 1rem .55rem;margin:.75rem 0}
-\t.pssr-table tbody tr:nth-child(even) td{background:transparent}
-\t.pssr-table tbody tr:hover td{background:transparent}
-\t.pssr-table tbody td{border:0;padding:.34rem 0;display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
-\t.pssr-table tbody td::before{content:attr(data-label);flex:0 0 auto;font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);padding-top:.15em}
-\t.pssr-table td.pssr-district{display:block;font-size:1rem;padding:.3rem 0 .45rem}
-\t.pssr-table td.pssr-district::before{content:none}
-\t.pssr-table td.pssr-note{display:block;padding-top:.4rem}
-\t.pssr-table td.pssr-note::before{display:block;margin-bottom:.25rem}
-}
-.pssr-badge{display:inline-block;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-row{border:1px solid var(--pdf-line,#2a2a2a);border-radius:10px;background:var(--pdf-ink-1,#161616);margin:.6rem 0}
+.pssr-row[hidden]{display:none!important}
+.pssr-row summary{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .6rem;padding:.7rem .9rem;cursor:pointer;list-style:none}
+.pssr-row summary::-webkit-details-marker{display:none}
+.pssr-row summary::marker{content:none}
+.pssr-row summary::before{content:"▸";display:inline-block;font-size:.95em;line-height:1;color:var(--pdf-mid,#a0a0a0);transition:transform .15s ease;flex:0 0 auto}
+.pssr-row[open] summary::before{transform:rotate(90deg);color:var(--pdf-signal-hi,#ffa366)}
+.pssr-s-votes{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;color:var(--pdf-mid,#a0a0a0);border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;padding:.15rem .55rem;white-space:nowrap}
+button.pssr-s-votes{background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none}
+button.pssr-s-votes:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+button.pssr-s-votes.pdq-voted{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+button.pssr-s-votes:disabled{opacity:.55;cursor:default}
+.pssr-s-name{font-weight:600;min-width:10rem}
+.pssr-s-milestone{font-family:var(--pdf-mono,monospace);font-size:.75rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-s-milestone.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
+.pssr-s-milestone a{color:inherit;text-decoration:none}
+.pssr-s-milestone a:hover{color:var(--pdf-signal,#ff5a1f)}
+.pssr-card{margin:0;padding:.4rem .9rem .9rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.55rem 1.25rem;border-top:1px solid var(--pdf-line,#2a2a2a)}
+.pssr-card dt{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);margin-bottom:.15rem}
+.pssr-card dd{margin:0;font-size:.9375rem}
+.pssr-card .pssr-note{font-size:.875rem;color:rgba(245,245,245,.92)}
+.pssr-card .pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
+.pssr-vote-hint{margin:.25rem 0 0;font-size:.875rem;color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-badge--acknowledged{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--records_received_review_pending,.pssr-badge--partial_production{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pssr-badge--complete_published,.pssr-badge--appeal_compliance{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
+.pssr-badge--routing_portal{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
+.pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
+.pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 .pssr-cta{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.5rem}
 .pssr-template{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616)}
 .pssr-template summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
@@ -416,34 +508,56 @@ ENHANCEMENT_CSS = """<style>
 .pssr-template pre{white-space:pre-wrap;word-break:break-word;margin:0;padding:1.25rem;max-height:32rem;overflow:auto;font-size:.8125rem;line-height:1.55;color:var(--pdf-paper,#f5f5f5)}
 .pssr-appeal{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.25rem;margin-top:1rem}
 .pssr-appeal-docs{font-size:.875rem}
-.pssr-badge--routing_portal{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
-.pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
-.pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
-.pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 @media (max-width:719px){.pssr-badge{white-space:normal}}
+/* Queue card list + intake form */
+.pssr-queue-form{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);margin:1.25rem 0 0}
+.pssr-queue-form summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
+.pssr-queue-form[open] summary{border-bottom:1px solid var(--pdf-line,#2a2a2a)}
+#pdq-form{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;padding:1rem 1.25rem 1.25rem;margin:0}
+#pdq-form .pdq-intro{flex:1 1 100%;margin:0;font-size:.875rem}
+#pdq-form .pdq-label{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
+#pdq-form .pdq-input{flex:1 1 12rem;min-width:0;max-width:22rem;background:var(--pdf-ink-1,#161616);border:1px solid var(--pdf-line,#2a2a2a);color:var(--pdf-paper,#f5f5f5);font-size:.875rem;padding:.625rem .875rem;border-radius:999px}
+#pdq-form .pdq-input:focus{outline:2px solid var(--pdf-signal,#ff5a1f);outline-offset:1px}
+.pdq-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+#pdq-form .pdq-submit{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;padding:.625rem 1.25rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
+#pdq-form .pdq-submit:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+#pdq-form .pdq-status{font-size:.8125rem;color:var(--pdf-signal-hi,#ffa366)}
+.pdq-nojs{flex:1 1 100%;margin:0;font-size:.8125rem;color:var(--pdf-mid,#a0a0a0)}
+.pdq-nojs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
+.pdq-nojs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
+.pdq-vote{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;padding:.35rem .8rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
+.pdq-vote:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+.pdq-voted{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+.pdq-vote:disabled{opacity:.55;cursor:default}
+@media (max-width:719px){
+\t.pssr-controls{flex-direction:column;align-items:stretch}
+\t.pssr-search{flex-basis:auto;max-width:none}
+}
 </style>"""
+
+
 
 ENHANCEMENT_JS = """<script>
 (function () {
 	"use strict";
 	var doc = document;
-	var table = doc.querySelector(".pssr-table table");
+	var rows = Array.prototype.slice.call(doc.querySelectorAll(".pssr-row"));
 	var search = doc.querySelector(".pssr-search");
-	var chips = Array.prototype.slice.call(doc.querySelectorAll(".pssr-chip"));
+	var chips = Array.prototype.slice.call(doc.querySelectorAll(".pssr-chip:not(.pssr-expand)"));
 	var empty = doc.querySelector(".pssr-empty");
 	var count = doc.querySelector(".pssr-count");
-	var rows = table ? Array.prototype.slice.call(table.querySelectorAll("tbody tr")) : [];
+	var expand = doc.querySelector(".pssr-expand");
 	var today = new Date();
 	today.setHours(0, 0, 0, 0);
-	rows.forEach(function (tr) {
-		if (tr.getAttribute("data-status") !== "awaiting_initial_response") { return; }
-		var exp = tr.getAttribute("data-expected");
+	rows.forEach(function (row) {
+		if (row.getAttribute("data-status") !== "awaiting_initial_response") { return; }
+		var exp = row.getAttribute("data-expected");
 		if (!exp) { return; }
 		if (today > new Date(exp + "T00:00:00")) {
-			var span = tr.querySelector(".pssr-expected");
-			if (span) {
-				span.classList.add("is-overdue");
-				tr.title = "Past the expected initial-response date";
+			var m = row.querySelector(".pssr-s-milestone");
+			if (m) {
+				m.classList.add("is-overdue");
+				row.title = "Past the expected initial-response date";
 			}
 		}
 	});
@@ -452,10 +566,10 @@ ENHANCEMENT_JS = """<script>
 		if (!rows.length) { return; }
 		var q = search && search.value ? search.value.trim().toLowerCase() : "";
 		var shown = 0;
-		rows.forEach(function (tr) {
-			var ok = (status === "all" || tr.getAttribute("data-status") === status) &&
-				(!q || (tr.getAttribute("data-district") || "").indexOf(q) !== -1);
-			tr.hidden = !ok;
+		rows.forEach(function (row) {
+			var ok = (status === "all" || row.getAttribute("data-status") === status) &&
+				(!q || (row.getAttribute("data-district") || "").indexOf(q) !== -1);
+			row.hidden = !ok;
 			if (ok) { shown++; }
 		});
 		if (empty) { empty.hidden = shown > 0; }
@@ -471,6 +585,15 @@ ENHANCEMENT_JS = """<script>
 			apply();
 		});
 	});
+	if (expand) {
+		expand.addEventListener("click", function () {
+			var open = expand.getAttribute("data-open") !== "1";
+			expand.setAttribute("data-open", open ? "1" : "0");
+			expand.setAttribute("aria-pressed", open ? "true" : "false");
+			expand.textContent = open ? "Collapse all" : "Expand all";
+			rows.forEach(function (row) { row.open = open; });
+		});
+	}
 	var wireCopy = function () {
 		var copyBtn = doc.querySelector(".pssr-copy");
 		if (!copyBtn) { return; }
@@ -528,6 +651,24 @@ def sanitize(snapshot):
             sys.exit(f"row {i} ({row['district']}): unknown status {status!r} — refusing to guess")
         clean.append({k: row.get(k) for k in WHITELIST})
     return clean
+
+
+def queue_rows(rows, queue):
+    """Clean queue DB rows against tracker rows for rendering: drop entries
+    whose district or shared jurisdiction already appears in the tracker
+    (case-insensitive, trimmed); keep only still-queued rows; order by votes
+    descending, then first_requested ascending as the tie-break."""
+    known = set()
+    for r in rows:
+        known.add(str(r["district"]).strip().lower())
+        known.add(str(r["jurisdiction"]).strip().lower())
+    keep = [q for q in queue
+            if q.get("queued", 1)
+            and str(q["district"]).strip().lower() not in known
+            and str(q["jurisdiction"]).strip().lower() not in known]
+    keep.sort(key=lambda q: q["first_requested"])
+    keep.sort(key=lambda q: int(q.get("votes", 0) or 0), reverse=True)
+    return keep
 
 
 # ---- block builders -------------------------------------------------------
@@ -589,7 +730,7 @@ def qa_group(question, answer):
     return group(inner, attrs=attrs)
 
 
-def build_blocks(project, rows, documents=()):
+def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
     total = len(rows)
     acknowledged = sum(1 for r in rows if r["status"] == "acknowledged")
     productions = sum(1 for r in rows if r.get("records_url"))
@@ -623,6 +764,7 @@ def build_blocks(project, rows, documents=()):
         buttons([
             ("Request Your District", MAILTO_REQUEST, False),
             ("Use the Public Records Template", "#template", True),
+            ("Queue a District", "#queue", True),
         ]),
         html_block(stats),
         p(f"Last updated: {updated}", class_name="pssr-updated"),
@@ -694,22 +836,15 @@ def build_blocks(project, rows, documents=()):
         '<input type="search" class="pssr-search" placeholder="Search district or town…" '
         'aria-label="Search district or town">'
         f'<div class="pdf-tabs pssr-tabs">{"".join(chips)}</div>'
+        '<button type="button" class="pdf-tab pssr-chip pssr-expand" data-open="0" '
+        'aria-pressed="false">Expand all</button>'
         "</div>"
     )
 
-    head_cells = (
-        "<tr>"
-        '<th scope="col">District</th>'
-        '<th scope="col">Timeline</th>'
-        '<th scope="col">Status</th>'
-        '<th scope="col">Latest public note</th>'
-        '<th scope="col">Documents</th>'
-        "</tr>"
-    )
     docs_by_district = {}
     for d in documents:
         docs_by_district.setdefault(d["district"], []).append(d)
-    body_rows = []
+    tracker_rows = []
     for r in rows:
         note = esc(r["public_note"]) if r.get("public_note") else "—"
         data_district = attr(f"{r['district']} {r['jurisdiction']}".lower())
@@ -733,37 +868,56 @@ def build_blocks(project, rows, documents=()):
                 for d in docs)
         else:
             docs_cell = "—"
-        body_rows.append(
-            f'<tr data-district="{data_district}" data-status="{attr(r["status"])}" '
-            f'data-submitted="{attr(r["submitted"])}" data-expected="{attr(r["expected_initial_response"])}">'
-            f'<td class="pssr-district" data-label="District">{esc(r["district"])}</td>'
-            f'<td class="pssr-timeline" data-label="Timeline">'
-            f'<span>{timeline_head}</span><span class="pssr-expected">{timeline_tail}</span></td>'
-            f'<td class="pssr-status" data-label="Status">{status_cell}</td>'
-            f'<td class="pssr-note" data-label="Latest note">{note}</td>'
-            f'<td class="pssr-docs" data-label="Documents">{docs_cell}</td>'
-            "</tr>"
+        tvotes = (tracker_votes or {}).get(r["district"].strip().lower(), 0)
+        if r.get("records_url"):
+            milestone = (f'<a class="pssr-s-milestone" href="{attr(r["records_url"])}" '
+                         f'title="Published production (PII-reviewed)">Records published</a>')
+        elif r.get("acknowledged"):
+            milestone = f'<span class="pssr-s-milestone">Acknowledged {fmt_short(r["acknowledged"])}</span>'
+        elif r.get("fee_estimate"):
+            milestone = f'<span class="pssr-s-milestone">Fee {esc(r["fee_estimate"])}</span>'
+        elif r["expected_initial_response"]:
+            milestone = (f'<span class="pssr-s-milestone">Response due '
+                         f'{fmt_short(r["expected_initial_response"])}</span>')
+        else:
+            milestone = f'<span class="pssr-s-milestone">Sent {fmt_short(r["submitted"])}</span>'
+        tracker_rows.append(
+            f'<details class="pssr-row" data-district="{data_district}" '
+            f'data-status="{attr(r["status"])}" '
+            f'data-submitted="{attr(r["submitted"])}" '
+            f'data-expected="{attr(r["expected_initial_response"])}">'
+            f"<summary>"
+            f'<button type="button" class="pdq-vote pssr-s-votes" data-district="{attr(r["district"])}" '
+            f'aria-label="{attr("Vote up " + r["district"])}">▲ {tvotes}</button>'
+            f'<span class="pssr-s-name">{esc(r["district"])}</span>'
+            f"{status_cell}"
+            f"{milestone}"
+            f"</summary>"
+            f'<dl class="pssr-card">'
+            f"<div><dt>Timeline</dt><dd><span>{timeline_head}</span>"
+            f'<span class="pssr-expected">{timeline_tail}</span></dd></div>'
+            f"<div><dt>Status</dt><dd>{status_cell}</dd></div>"
+            f"<div><dt>Latest note</dt><dd>{note}</dd></div>"
+            f"<div><dt>Documents</dt><dd>{docs_cell}</dd></div>"
+            f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
+            f'data-district="{attr(r["district"])}" '
+            f'aria-label="{attr("Vote up " + r["district"])}">▲ Vote up</button></dd></div>'
+            f"</dl>"
+            f"</details>"
         )
-    table_block = (
-        '<!-- wp:table {"align":"wide","className":"pssr-table"} -->\n'
-        '<figure class="wp-block-table alignwide pssr-table"><table>'
-        f"<thead>{head_cells}</thead>"
-        f"<tbody>{''.join(body_rows)}</tbody>"
-        "</table></figure>\n"
-        "<!-- /wp:table -->"
-    )
+    rows_block = html_block('<div class="pssr-rows">' + "".join(tracker_rows) + "</div>")
 
     tracker_inner = "\n".join([
         h(2, "Live district tracker"),
         p(f"{total} districts have received the request. Use the search box or the "
-          "status filters to narrow the table."
+          "status filters to narrow the list — tap a district to open its full card."
           if rows else
           "No district rows yet — the first requests go out on a rolling basis. "
           "Each district appears here once its request is sent and answered."),
         html_block(controls),
-        html_block('<p class="pssr-count" hidden aria-live="polite"></p>'),
-        table_block,
+        rows_block,
         html_block(ENHANCEMENT_CSS
+                   + '\n<p class="pssr-count" hidden aria-live="polite"></p>\n'
                    + '\n<p class="pssr-empty" hidden>No districts match that filter.</p>\n'
                    + ENHANCEMENT_JS),
     ])
@@ -791,17 +945,45 @@ def build_blocks(project, rows, documents=()):
         appeals_inner = h(2, "Appeals &amp; notable responses") + "\n" + "\n".join(appeal_items)
         blocks.append(group(appeals_inner))
 
-    # 4c. Requested next -------------------------------------------------------
-    if REQUESTED_NEXT:
-        requested_inner = "\n".join([
-            h(2, "Requested next"),
-            p("These districts have been suggested by readers and are queued for the "
-              "same standardized request. Check the Live District Tracker above and "
-              "this list before requesting a district — if it appears in either "
-              "place, there is no need to request it again."),
-            ul(REQUESTED_NEXT),
-        ])
-        blocks.append(group(requested_inner))
+    # 3. Requested next (queue) --------------------------------------------
+    if queue:
+        qrows = []
+        for i, q in enumerate(queue, 1):
+            note = esc(q["note"]) if q.get("note") else "—"
+            qrows.append(
+                '<details class="pssr-row">'
+                "<summary>"
+                f'<span class="pssr-s-qn">{i}</span>'
+                f'<button type="button" class="pdq-vote pssr-s-votes" data-district="{attr(q["district"])}" '
+                f'aria-label="{attr("Vote up " + q["district"])}">▲ {q.get("votes", 0)}</button>'
+                f'<span class="pssr-s-name">{esc(q["district"])}</span>'
+                f'<span class="pssr-s-milestone">first {fmt_short(q["first_requested"])}'
+                f' · requested {q["requested_count"]}×</span>'
+                "</summary>"
+                '<dl class="pssr-card">'
+                f"<div><dt>First requested</dt><dd>{fmt_short(q['first_requested'])}</dd></div>"
+                f"<div><dt>Last requested</dt><dd>{fmt_short(q['last_requested'])}</dd></div>"
+                f"<div><dt>Times requested</dt><dd>{q['requested_count']}</dd></div>"
+                f"<div><dt>Note</dt><dd>{note}</dd></div>"
+                f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
+                f'data-district="{attr(q["district"])}" '
+                f'aria-label="{attr("Vote up " + q["district"])}">▲ Vote up</button></dd></div>'
+                "</dl>"
+                "</details>"
+            )
+        queue_block = html_block('<div class="pssr-rows">' + "".join(qrows) + "</div>")
+    else:
+        queue_block = p("Nothing in the queue yet — add your district below.")
+    queue_inner = "\n".join([
+        h(2, QUEUE_HEAD),
+        p(QUEUE_EXPLAIN),
+        p(QUEUE_VOTE_HINT, class_name="pssr-vote-hint"),
+        queue_block,
+        buttons([("Donate", DONATE_URL, False)]),
+        p("Every donation buys more records requests."),
+        html_block(QUEUE_FORM_HTML),
+    ])
+    blocks.append(group(queue_inner, attrs='{"anchor":"queue"}', anchor="queue"))
 
     # 5. Request-your-district CTA -------------------------------------------
     cta_inner = "\n".join([

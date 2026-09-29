@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""SQLite-backed reader-request queue for the Massachusetts Student
-Settlement Records Project (the "Requested next" section of WP page 41).
+"""SQLite-backed reader-request queue for the Georgia Student Settlement
+Records Project (the "Requested next" section of the Georgia tracker page).
 
-Own DB file (settlements_queue.sqlite) so queue history can be committed and
-refreshed independently of the tracker DB (settlements.sqlite). Submissions
-flow: page form -> WP mu-plugin (pdforce-queue-mu.php, private
-pdforce_queue_note posts) -> `settlements_db.py queue-ingest` (upserts here,
-then auto-merges against the tracker) -> `build_settlements_page.py` renders.
+Own DB file (ga_settlements_queue.sqlite) so queue history can be committed
+and refreshed independently of the tracker DB (ga_settlements.sqlite).
+Submissions flow: page form -> WP mu-plugin (pdforce-queue-mu.php, private
+pdforce_queue_note posts with a ga| prefix) -> `ga_settlements_db.py
+queue-ingest` (upserts here, then auto-merges against the tracker) ->
+`build_ga_settlements_page.py` renders.
 
 Usage (run from tools/):
-  python queue_db.py init
-  python queue_db.py migrate    # idempotent schema upgrade (e.g. votes column)
-  python queue_db.py migrate    # also ensures tracker_votes (tracker store)
-  python queue_db.py seed       # idempotent: INSERT OR IGNORE, counts unchanged
+  python ga_queue_db.py init
+  python ga_queue_db.py migrate    # idempotent schema upgrade (e.g. votes)
+  python ga_queue_db.py migrate    # also ensures tracker_votes (tracker store)
 """
 import argparse
 import datetime
@@ -21,7 +21,7 @@ import sqlite3
 import sys
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       "settlements_queue.sqlite")
+                       "ga_settlements_queue.sqlite")
 
 QUEUE_DDL = """
 CREATE TABLE IF NOT EXISTS queue (
@@ -46,30 +46,17 @@ CREATE TABLE IF NOT EXISTS queue_meta (
 """
 TRACKER_VOTES_DDL = """
 CREATE TABLE IF NOT EXISTS tracker_votes (
-    district TEXT PRIMARY KEY,      -- settlements.sqlite districts.district value
+    district TEXT PRIMARY KEY,      -- ga_settlements.sqlite districts.district value
     votes INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL
 );
 """
 SCHEMA = QUEUE_DDL + QUEUE_META_DDL + TRACKER_VOTES_DDL
 
-# The six districts the pre-queue era collected from readers (hard-coded
-# REQUESTED_NEXT on the page before this DB existed).
-SEED_DATE = "2026-09-24"
-SEED_NOTE = "Suggested by a reader before the queue form existed."
-SEED_DISTRICTS = (
-    ("Auburn Public Schools", "Auburn"),
-    ("Chelmsford Public Schools", "Chelmsford"),
-    ("Haverhill Public Schools", "Haverhill"),
-    ("Lawrence Public Schools", "Lawrence"),
-    ("Newton Public Schools", "Newton"),
-    ("North Andover Public Schools", "North Andover"),
-)
-
 META_DEFAULTS = {
-    "name": "Massachusetts Student Settlement Records Project — request queue",
-    "snapshot_date": SEED_DATE,
-    "seeded_at": SEED_DATE,
+    "name": "Georgia Student Settlement Records Project — request queue",
+    "snapshot_date": "2026-09-26",
+    "seeded_at": "2026-09-26",
 }
 
 
@@ -141,7 +128,7 @@ def vote_tracker(conn, district, amount=1):
     if row:
         conn.execute(
             "UPDATE tracker_votes SET votes = votes + ?, updated_at = ? "
-            "WHERE district = ?", (amount, now, row["district"]))
+            "WHERE lower(district) = lower(?)", (amount, now, district))
     else:
         conn.execute(
             "INSERT INTO tracker_votes (district, votes, updated_at) "
@@ -158,8 +145,7 @@ def cmd_init(args):
 
 
 def cmd_migrate(args):
-    """Idempotent schema upgrade for pre-votes DB files and pre-tracker_votes
-    DB files."""
+    """Idempotent schema upgrade."""
     conn = open_db()
     conn.executescript(TRACKER_VOTES_DDL)
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(queue)").fetchall()}
@@ -174,34 +160,11 @@ def cmd_migrate(args):
     print("migrated: votes column added (tracker_votes ensured)")
 
 
-def cmd_seed(args):
-    conn = open_db()
-    seeded = skipped = 0
-    for district, jurisdiction in SEED_DISTRICTS:
-        cur = conn.execute(
-            "INSERT OR IGNORE INTO queue (district, jurisdiction, note, "
-            "requested_count, first_requested, last_requested, source, queued, "
-            "created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-            (district, jurisdiction, SEED_NOTE, 1, SEED_DATE, SEED_DATE,
-             "seed", 1, SEED_DATE + "T00:00:00"))
-        if cur.rowcount:
-            seeded += 1
-        else:
-            skipped += 1
-    for key, value in META_DEFAULTS.items():
-        conn.execute("INSERT OR REPLACE INTO queue_meta (key, value) VALUES (?,?)",
-                     (key, value))
-    conn.commit()
-    conn.close()
-    print(f"seeded {seeded}, skipped {skipped} (exists)")
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init").set_defaults(func=cmd_init)
     sub.add_parser("migrate").set_defaults(func=cmd_migrate)
-    sub.add_parser("seed").set_defaults(func=cmd_seed)
     args = ap.parse_args()
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     args.func(args)

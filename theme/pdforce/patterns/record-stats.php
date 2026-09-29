@@ -27,9 +27,9 @@ $pdf_stat_sets = array(
 	),
 	// Set 2 — where each district stands right now.
 	array(
-		array( 'num' => '33', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
+		array( 'num' => '30', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
 		array( 'num' => '3', 'lbl' => __( 'Routed or re-sent', 'pdforce' ) ),
-		array( 'num' => '6', 'lbl' => __( 'SPR appeal filed', 'pdforce' ) ),
+		array( 'num' => '7', 'lbl' => __( 'SPR appeal filed', 'pdforce' ) ),
 		array( 'num' => 'Oct. 2–7', 'lbl' => __( 'Response milestones', 'pdforce' ), 'range' => true ),
 	),
 );

@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS districts (
     last_public_update TEXT NOT NULL,
     excluded INTEGER NOT NULL DEFAULT 0,
     fee_estimate TEXT,                  -- public fee estimate, e.g. '$750' (NULL = none)
-    appeal_note TEXT                    -- public SPR-appeal narrative (NULL = none)
+    appeal_note TEXT,                   -- public SPR-appeal narrative (NULL = none)
+    spr_number TEXT                     -- MA-only mirror of settlements_db.py (do NOT ALTER ga_settlements.sqlite yet)
 );
 """
 DOCUMENTS_DDL = """

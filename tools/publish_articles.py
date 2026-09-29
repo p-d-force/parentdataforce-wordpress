@@ -170,6 +170,18 @@ ARTICLES = [
         "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article27_settlement_update.md",
+        "slug": "pembroke-produced-a-full-settlement-set",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article28_weston_reconsideration.md",
+        "slug": "weston-reconsideration-request-spr26-3432",
+        "categories": [16, 9],   # Public Records (new), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

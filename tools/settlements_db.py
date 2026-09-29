@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS districts (
     fee_estimate TEXT,                  -- public fee estimate, e.g. '$750' (NULL = none)
     fee_hours REAL,                     -- hours claimed in a fee itemization (NULL = none)
     records_count INTEGER,              -- distinct responsive documents produced (NULL = unknown)
-    appeal_note TEXT                    -- public SPR-appeal narrative (NULL = none)
+    appeal_note TEXT,                   -- public SPR-appeal narrative (NULL = none)
+    spr_number TEXT                     -- docketed appeal/petition number, e.g. 'SPR26/4024' (NULL = none)
 );
 """
 DOCUMENTS_DDL = """
@@ -205,10 +206,12 @@ def cmd_migrate(args):
         conn.execute("ALTER TABLE districts ADD COLUMN fee_hours REAL")
     if "records_count" not in cols:
         conn.execute("ALTER TABLE districts ADD COLUMN records_count INTEGER")
+    if "spr_number" not in cols:
+        conn.execute("ALTER TABLE districts ADD COLUMN spr_number TEXT")
     conn.commit()
     conn.close()
     print("migrated: schema brought current (statuses, fee_estimate/fee_hours/"
-          "records_count/appeal_note, documents)")
+          "records_count/appeal_note, documents, spr_number)")
 
 
 DEFAULT_DOC_LABELS = {
@@ -309,6 +312,16 @@ def cmd_mark(args):
         fields["acknowledged"] = None
     _stamp(conn, row, fields)
     print(f"{row['district']} -> {args.status}")
+
+
+def cmd_spr(args):
+    conn = open_db()
+    row = _get_row(conn, args.name)
+    number = args.number.strip().upper()
+    conn.execute("UPDATE districts SET spr_number=? WHERE district=?", (number, row["district"]))
+    conn.commit()
+    conn.close()
+    print(f"{row['district']} docket = {number}")
 
 
 def cmd_fee(args):
@@ -578,6 +591,7 @@ def cmd_export_json(args):
             "fee_hours": r.get("fee_hours"),
             "records_count": r.get("records_count"),
             "appeal_note": r.get("appeal_note"),
+            "spr_number": r.get("spr_number"),
         } for r in rows]}
     if documents:
         snap["documents"] = documents
@@ -646,6 +660,9 @@ def main():
     p = sub.add_parser("queue-remove")
     p.add_argument("--name", required=True)
     p.set_defaults(func=cmd_queue_remove)
+    p = sub.add_parser("spr")
+    p.add_argument("--name", required=True); p.add_argument("--number", required=True)
+    p.set_defaults(func=cmd_spr)
     sub.add_parser("queue-merge").set_defaults(func=cmd_queue_merge)
     sub.add_parser("queue-ingest").set_defaults(func=cmd_queue_ingest)
     args = ap.parse_args()

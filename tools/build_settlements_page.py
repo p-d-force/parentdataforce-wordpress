@@ -48,6 +48,7 @@ WHITELIST = (
     "fee_hours",
     "records_count",
     "last_public_update",
+    "spr_number",
 )
 
 STATUS_BADGES = {
@@ -473,6 +474,7 @@ button.pssr-s-votes:disabled{opacity:.55;cursor:default}
 .pssr-s-milestone.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
 .pssr-s-milestone a{color:inherit;text-decoration:none}
 .pssr-s-milestone a:hover{color:var(--pdf-signal,#ff5a1f)}
+.pssr-s-docket{font-family:var(--pdf-mono,monospace);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-card{margin:0;padding:.4rem .9rem .9rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.55rem 1.25rem;border-top:1px solid var(--pdf-line,#2a2a2a)}
 .pssr-card dt{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);margin-bottom:.15rem}
 .pssr-card dd{margin:0;font-size:.9375rem}
@@ -837,6 +839,8 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
                          f'{fmt_short(r["expected_initial_response"])}</span>')
         else:
             milestone = f'<span class="pssr-s-milestone">Sent {fmt_short(r["submitted"])}</span>'
+        docket_cell = (f'<span class="pssr-s-docket">{attr(r["spr_number"])}</span>'
+                       if r.get("spr_number") else "")
         tracker_rows.append(
             f'<details class="pssr-row" data-district="{data_district}" '
             f'data-status="{attr(r["status"])}" '
@@ -857,6 +861,7 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
             f"<div><dt>Records</dt><dd>{records_cell}</dd></div>"
             f"<div><dt>Status</dt><dd>{status_cell}</dd></div>"
             f"<div><dt>Latest note</dt><dd>{note}</dd></div>"
+            f"<div><dt>Docket</dt><dd>{docket_cell}</dd></div>"
             f"<div><dt>Documents</dt><dd>{docs_cell}</dd></div>"
             f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
             f'data-district="{attr(r["district"])}" '
@@ -1031,7 +1036,8 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
             dl.sort(key=lambda d: order.get(d.get("kind"), 99))
         appeal_items = []
         for r in appeal_rows:
-            inner = h(3, f"{esc(r['district'])} — fee estimate appealed") + "\n" + p(esc(r["appeal_note"]))
+            docket = f" (docketed {r['spr_number']})" if r.get("spr_number") else ""
+            inner = h(3, f"{esc(r['district'])} — fee estimate appealed{docket}") + "\n" + p(esc(r["appeal_note"]))
             docs = docs_by_district.get(r["district"])
             if docs:
                 links = " · ".join(

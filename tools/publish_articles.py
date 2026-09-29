@@ -134,6 +134,42 @@ ARTICLES = [
         "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article21_dracut_appeal.md",
+        "slug": "dracut-2950-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article22_east_bridgewater_appeal.md",
+        "slug": "east-bridgewater-350-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article23_natick_appeal.md",
+        "slug": "natick-275-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article24_weymouth_appeal.md",
+        "slug": "weymouth-350-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article25_westwood_appeal.md",
+        "slug": "westwood-520-fee-estimate-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article26_petitions_same_words.md",
+        "slug": "two-districts-one-petition-same-words",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

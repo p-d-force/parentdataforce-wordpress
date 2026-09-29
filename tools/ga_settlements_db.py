@@ -31,6 +31,7 @@ import urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wp_api  # noqa: E402
 import build_ga_settlements_page as bsp  # noqa: E402
+import ga_queue_db  # noqa: E402
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ga_settlements.sqlite")
 
@@ -59,7 +60,7 @@ DOCUMENTS_DDL = """
 CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY,
     district TEXT NOT NULL,             -- districts.district value
-    kind TEXT NOT NULL,                 -- 'request' | 'response' | 'appeal'
+    kind TEXT NOT NULL,                 -- 'request' | 'response' | 'appeal' | 'article' (MA schema)
     label TEXT NOT NULL,
     url TEXT NOT NULL,
     UNIQUE(district, kind)
@@ -362,7 +363,18 @@ def _project_and_rows(conn):
 
 
 def _publish(project, rows, status, documents=()):
-    content = bsp.build_blocks(project, rows, documents=documents)
+    try:
+        qconn = ga_queue_db.open_db()
+        queue = [dict(r) for r in qconn.execute(
+            "SELECT * FROM queue WHERE queued=1").fetchall()]
+        tvotes = {r["district"].strip().lower(): r["votes"] for r in qconn.execute(
+            "SELECT district, votes FROM tracker_votes").fetchall()}
+        qconn.close()
+    except sqlite3.OperationalError:
+        sys.exit("queue DB missing — run: python ga_queue_db.py init")
+    queue = bsp.queue_rows(rows, queue)
+    content = bsp.build_blocks(project, rows, documents=documents, queue=queue,
+                               tracker_votes=tvotes)
     c = wp_api.client()
     existing = c.call(
         "GET",
@@ -425,6 +437,139 @@ def cmd_export_json(args):
     print(f"exported {len(rows)} rows -> {args.path}")
 
 
+# ---- district queue (tools/ga_settlements_queue.sqlite) --------------------
+
+QUEUE_INGESTED_META = "pdforce_ingested"
+
+
+def cmd_queue(args):
+    conn = ga_queue_db.open_db()
+    cond = "" if args.history else " WHERE queued=1"
+    rows = conn.execute(
+        f"SELECT * FROM queue{cond} "
+        "ORDER BY first_requested, last_requested DESC, district").fetchall()
+    conn.close()
+    for r in rows:
+        served = "" if r["queued"] else " [served]"
+        print(f'{r["district"]} ({r["jurisdiction"]}) · first {r["first_requested"]}'
+              f' · last {r["last_requested"]} · requested {r["requested_count"]}× ·'
+              f' votes {r["votes"]} · source={r["source"]}{served}')
+    print(f"{len(rows)} rows")
+
+
+def cmd_queue_add(args):
+    conn = ga_queue_db.open_db()
+    date = args.date or datetime.date.today().isoformat()
+    kind = ga_queue_db.upsert(conn, args.name, args.town, note=args.note or "",
+                              source=args.source, date=date)
+    conn.commit()
+    conn.close()
+    print(f"queued {args.name}: {kind} ({date})")
+
+
+def cmd_queue_remove(args):
+    conn = ga_queue_db.open_db()
+    rows = conn.execute(
+        "SELECT * FROM queue WHERE lower(district) LIKE ? AND queued=1 ORDER BY district",
+        (f"%{args.name.lower()}%",)).fetchall()
+    if not rows:
+        sys.exit(f"no queued district matches {args.name!r}")
+    if len(rows) > 1:
+        cands = ", ".join(r["district"] for r in rows)
+        sys.exit(f"ambiguous match for {args.name!r}: {cands}")
+    conn.execute("UPDATE queue SET queued=0 WHERE id=?", (rows[0]["id"],))
+    conn.commit()
+    conn.close()
+    print(f"removed {rows[0]['district']} from queue (history kept)")
+
+
+def _queue_merge():
+    """queued=0 for queue rows whose district (case-insensitive, trimmed)
+    matches any ga_settlements.sqlite district or shared jurisdiction string.
+    Keeps history rows. A merged row's votes move to the tracker-vote store
+    under the matching TRACKER district name. Returns (kept, removed)."""
+    sconn = open_db()
+    tracker = sconn.execute("SELECT district, jurisdiction FROM districts").fetchall()
+    sconn.close()
+    conn = ga_queue_db.open_db()
+    kept = removed = 0
+    for q in conn.execute(
+            "SELECT id, district, jurisdiction, votes FROM queue WHERE queued=1"
+    ).fetchall():
+        match = next((t for t in tracker
+                      if t["district"].strip().lower() == q["district"].strip().lower()
+                      or t["jurisdiction"].strip().lower() == q["jurisdiction"].strip().lower()),
+                     None)
+        if match:
+            if q["votes"]:
+                ga_queue_db.vote_tracker(conn, match["district"], amount=q["votes"])
+            conn.execute("UPDATE queue SET queued=0 WHERE id=?", (q["id"],))
+            removed += 1
+        else:
+            kept += 1
+    conn.commit()
+    conn.close()
+    return kept, removed
+
+
+def cmd_queue_merge(args):
+    kept, removed = _queue_merge()
+    print(f"kept={kept}, removed={removed}")
+
+
+def cmd_queue_ingest(args):
+    """Ingest GA-marked intake/vote posts (ga|district|town|note,
+    vote-ga|district). MA posts (plain prefix) are ignored here; MA's
+    settlements_db.py queue-ingest ignores GA-marked ones."""
+    c = wp_api.client()
+    posts = c.call("GET",
+                   "/wp/v2/queue-notes?per_page=100&status=private&context=edit",
+                   quiet=True)
+    conn = ga_queue_db.open_db()
+    ingested = skipped = 0
+    for m in posts:
+        meta = m.get("meta") or {}
+        if meta.get(QUEUE_INGESTED_META):
+            skipped += 1
+            continue
+        raw = (m.get("content") or {}).get("raw") or ""
+        if not raw.startswith(("ga|", "vote-ga|")):
+            skipped += 1  # Massachusetts post or unparseable — not ours
+            continue
+        date = (m.get("date_gmt") or m.get("date") or "")[:10]
+        if not date:
+            date = datetime.date.today().isoformat()
+        if raw.startswith("vote-ga|"):
+            # Interest vote: bump an existing queue row; if the district is
+            # already tracked, bump the tracker-vote store instead.
+            district = raw[len("vote-ga|"):].split("|", 1)[0].strip()
+            if (ga_queue_db.vote(conn, district) is None
+                    and ga_queue_db.vote_tracker(conn, district) is None):
+                print(f"queue note {m.get('id')}: vote for unknown district "
+                      f"{district!r} — skipped", file=sys.stderr)
+            c.call("POST", f"/wp/v2/queue-notes/{m['id']}",
+                   {"meta": {QUEUE_INGESTED_META: 1}}, quiet=True)
+            ingested += 1
+            continue
+        parts = raw.split("|", 3)
+        if len(parts) < 3 or not parts[1].strip():
+            print(f"queue note {m.get('id')}: unparseable content — skipped",
+                  file=sys.stderr)
+            continue
+        district = parts[1].strip()
+        town = parts[2].strip()
+        note = parts[3].strip() if len(parts) > 3 else ""
+        ga_queue_db.upsert(conn, district, town, note=note, source="reader", date=date)
+        c.call("POST", f"/wp/v2/queue-notes/{m['id']}",
+               {"meta": {QUEUE_INGESTED_META: 1}}, quiet=True)
+        ingested += 1
+    conn.commit()
+    conn.close()
+    print(f"ingested={ingested}, skipped={skipped}")
+    kept, removed = _queue_merge()
+    print(f"merge: kept={kept}, removed={removed}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -464,7 +609,21 @@ def main():
     p.add_argument("--status", choices=("draft", "publish"), default="publish")
     p.set_defaults(func=cmd_publish)
     p = sub.add_parser("export-json")
-    p.add_argument("path"); p.set_defaults(func=cmd_export_json)
+    p.add_argument("path")
+    p.set_defaults(func=cmd_export_json)
+    p = sub.add_parser("queue")
+    p.add_argument("--history", action="store_true")
+    p.set_defaults(func=cmd_queue)
+    p = sub.add_parser("queue-add")
+    p.add_argument("--name", required=True); p.add_argument("--town", required=True)
+    p.add_argument("--note"); p.add_argument("--source", default="reader")
+    p.add_argument("--date")
+    p.set_defaults(func=cmd_queue_add)
+    p = sub.add_parser("queue-remove")
+    p.add_argument("--name", required=True)
+    p.set_defaults(func=cmd_queue_remove)
+    sub.add_parser("queue-merge").set_defaults(func=cmd_queue_merge)
+    sub.add_parser("queue-ingest").set_defaults(func=cmd_queue_ingest)
     args = ap.parse_args()
     if args.cmd != "init":
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

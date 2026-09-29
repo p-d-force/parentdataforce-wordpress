@@ -216,12 +216,13 @@ DEFAULT_DOC_LABELS = {
     "response": "District response (Sept. 23, 2026)",
     "appeal": "SPR appeal as filed (Sept. 23, 2026)",
     "records": "Production received Sept. 25, 2026 — Parent Data Force PII-reviewed public copy (45 pp.)",
+    "article": "Read the article",
 }
 
 
 def cmd_add_document(args):
-    if args.kind not in ("request", "response", "appeal", "records"):
-        sys.exit("--kind must be request, response, appeal, or records")
+    if args.kind not in ("request", "response", "appeal", "records", "article"):
+        sys.exit("--kind must be request, response, appeal, records, or article")
     if bool(args.file) == bool(args.url):
         sys.exit("pass exactly one of --file or --url")
     conn = open_db()
@@ -385,11 +386,14 @@ def _publish(project, rows, status, documents=()):
         qconn = queue_db.open_db()
         queue = [dict(r) for r in qconn.execute(
             "SELECT * FROM queue WHERE queued=1").fetchall()]
+        tvotes = {r["district"].strip().lower(): r["votes"] for r in qconn.execute(
+            "SELECT district, votes FROM tracker_votes").fetchall()}
         qconn.close()
     except sqlite3.OperationalError:
         sys.exit("queue DB missing — run: python queue_db.py init && python queue_db.py seed")
     queue = bsp.queue_rows(rows, queue)
-    content = bsp.build_blocks(project, rows, documents=documents, queue=queue)
+    content = bsp.build_blocks(project, rows, documents=documents, queue=queue,
+                               tracker_votes=tvotes)
     c = wp_api.client()
     existing = c.call(
         "GET",
@@ -471,18 +475,23 @@ def cmd_queue_remove(args):
 def _queue_merge():
     """queued=0 for queue rows whose district (case-insensitive, trimmed)
     matches any settlements.sqlite district or shared jurisdiction string.
-    Keeps history rows. Returns (kept, removed)."""
+    Keeps history rows. A merged row's votes move to the tracker-vote store
+    under the matching TRACKER district name. Returns (kept, removed)."""
     sconn = open_db()
     tracker = sconn.execute("SELECT district, jurisdiction FROM districts").fetchall()
     sconn.close()
-    known = {r["district"].strip().lower() for r in tracker}
-    known |= {r["jurisdiction"].strip().lower() for r in tracker}
     conn = queue_db.open_db()
     kept = removed = 0
     for q in conn.execute(
-            "SELECT id, district, jurisdiction FROM queue WHERE queued=1").fetchall():
-        if (q["district"].strip().lower() in known
-                or q["jurisdiction"].strip().lower() in known):
+            "SELECT id, district, jurisdiction, votes FROM queue WHERE queued=1"
+    ).fetchall():
+        match = next((t for t in tracker
+                      if t["district"].strip().lower() == q["district"].strip().lower()
+                      or t["jurisdiction"].strip().lower() == q["jurisdiction"].strip().lower()),
+                     None)
+        if match:
+            if q["votes"]:
+                queue_db.vote_tracker(conn, match["district"], amount=q["votes"])
             conn.execute("UPDATE queue SET queued=0 WHERE id=?", (q["id"],))
             removed += 1
         else:
@@ -510,14 +519,20 @@ def cmd_queue_ingest(args):
             skipped += 1
             continue
         raw = (m.get("content") or {}).get("raw") or ""
+        if raw.startswith("ga|") or raw.startswith("vote-ga|"):
+            skipped += 1  # Georgia post — processed by ga_settlements_db.py
+            continue
         parts = raw.split("|", 2)
         date = (m.get("date_gmt") or m.get("date") or "")[:10]
         if not date:
             date = datetime.date.today().isoformat()
         if len(parts) >= 2 and parts[0].strip().lower() == "vote":
-            # Interest vote: bump the existing queue row; never creates one.
+            # Interest vote: bump an existing queue row; if the district is
+            # already tracked, bump the tracker-vote store instead. Never
+            # creates rows in either.
             district = parts[1].strip()
-            if not district or queue_db.vote(conn, district) is None:
+            if (queue_db.vote(conn, district) is None
+                    and queue_db.vote_tracker(conn, district) is None):
                 print(f"queue note {m.get('id')}: vote for unknown district "
                       f"{district!r} — skipped", file=sys.stderr)
             c.call("POST", f"/wp/v2/queue-notes/{m['id']}",

@@ -64,20 +64,21 @@ STATUS_BADGES = {
 }
 
 DOC_KIND_LABELS = {"request": "Request", "response": "Response", "appeal": "Appeal",
-                   "records": "Records"}
+                   "records": "Records", "article": "Article"}
 
 # Reader-suggested district queue, rendered from tools/settlements_queue.sqlite
 # (see queue_db.py and settlements_db.py queue-* commands). Reader identities
 # are deliberately not recorded (one requester asked for anonymity).
 QUEUE_HEAD = "Requested next"
 QUEUE_EXPLAIN = (
-    "Districts queue in the order requests are received. When staff time opens "
-    "up, the next standard request goes out from the top of this list — "
-    "first-come, first-served. Check the Live District Tracker above and this "
-    "list before requesting a district — if a district is already tracked or "
-    "queued, there's no need to request it again. Vote up the queued districts "
-    "you're interested in — votes show where demand is strongest."
+    "This list is ranked by reader votes — the more ▲ a district has, the "
+    "higher it sits, and the top of the list is the next standard request "
+    "when staff time opens up. New districts start at the bottom and climb "
+    "as readers vote. Check the Live District Tracker above and this list "
+    "before requesting a district — if a district is already tracked or "
+    "queued, there's no need to request it again."
 )
+QUEUE_VOTE_HINT = "Not near the top yet? Open a district's card and tap ▲ to vote it up — every vote moves it up the list."
 DONATE_URL = "https://www.parentdataforce.com/donate/"
 QUEUE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue"
 QUEUE_VOTE_ENDPOINT = "https://www.parentdataforce.com/wp-json/pdforce/v1/queue/vote"
@@ -142,10 +143,14 @@ QUEUE_FORM_HTML = """<details class="pssr-queue-form">
 	if (!buttons.length) { return; }
 	var endpoint = "__VOTE_ENDPOINT__";
 	Array.prototype.forEach.call(buttons, function (btn) {
-		btn.addEventListener("click", function () {
+		btn.addEventListener("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
 			if (btn.disabled) { return; }
 			btn.disabled = true;
-			var count = parseInt(btn.textContent.replace(/\\D+/g, ""), 10) || 0;
+			var row = btn.closest(".pssr-row");
+			var span = row ? row.querySelector(".pssr-s-votes") : null;
+			var count = span ? (parseInt(span.textContent.replace(/\\D+/g, ""), 10) || 0) : 0;
 			fetch(endpoint, {
 				method: "POST",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -154,13 +159,14 @@ QUEUE_FORM_HTML = """<details class="pssr-queue-form">
 					"&pdq_website="
 			}).then(function (r) { return r.json(); }).then(function (d) {
 				if (d && d.success) {
-					btn.textContent = "▲ " + (count + 1);
+					if (span) { span.textContent = "▲ " + (count + 1); }
 					btn.classList.add("pdq-voted");
+					btn.disabled = true;
 				} else {
 					btn.disabled = false;
 				}
 			}).catch(function () { btn.disabled = false; });
-		});
+		}, false);
 	});
 })();
 </script>""".replace("__ENDPOINT__", QUEUE_ENDPOINT).replace("__MAILTO__", MAILTO_QUEUE).replace("__VOTE_ENDPOINT__", QUEUE_VOTE_ENDPOINT)
@@ -450,53 +456,37 @@ ENHANCEMENT_CSS = """<style>
 .pssr-search:focus{outline:2px solid var(--pdf-signal,#ff5a1f);outline-offset:1px}
 .pssr-tabs{margin:0;padding:0;max-width:none}
 .pssr-count{margin:0 0 .9rem;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0)}
-.pssr-table{overflow-x:auto}
-.pssr-table table{border-collapse:collapse;font-size:.9375rem;line-height:1.4;margin:0}
-.pssr-table table,.pssr-table thead,.pssr-table tbody,.pssr-table tr,.pssr-table td,.pssr-table th{border:0}
-.pssr-table thead th{padding:.75rem;font-family:var(--pdf-mono,monospace);font-size:.6875rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);text-align:left;vertical-align:bottom;border-bottom:1px solid var(--pdf-mid,#a0a0a0);white-space:nowrap}
-.pssr-table tbody td{padding:.7rem .75rem;border-bottom:1px solid var(--pdf-line,#2a2a2a);vertical-align:top}
-.pssr-table tbody tr:nth-child(even) td{background:rgba(245,245,245,.03)}
-.pssr-table tbody tr:hover td{background:var(--pdf-ink-1,#161616)}
-.pssr-district{font-weight:600;min-width:12rem}
-.pssr-timeline{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
-.pssr-timeline .pssr-expected{color:var(--pdf-paper,#f5f5f5)}
-.pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
-.pssr-status{min-width:10rem}
-.pssr-status .pssr-badge{margin:0 .35rem .35rem 0}
-.pssr-note{font-size:.875rem;color:rgba(245,245,245,.92);min-width:16rem;max-width:26rem}
-.pssr-docs{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
-.pssr-acked{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
-.pssr-fee{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
-.pssr-records{font-size:.8125rem;white-space:nowrap}
-.pssr-records a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
-.pssr-records a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
-.pssr-docs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
-.pssr-docs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
-.pssr-docsep{color:var(--pdf-line,#2a2a2a);padding:0 .3rem}
-@media (min-width:900px){
-\t.pssr-table{overflow:visible}
-\t.pssr-table thead th{position:sticky;top:0;z-index:2;background:var(--pdf-ink-0,#0b0b0b)}
-}
-@media (max-width:719px){
-\t.pssr-controls{flex-direction:column;align-items:stretch}
-\t.pssr-search{flex-basis:auto;max-width:none}
-\t.pssr-table{overflow:visible}
-\t.pssr-table table,.pssr-table tbody,.pssr-table tr,.pssr-table td{display:block;width:100%}
-\t.pssr-table thead{display:none}
-\t.pssr-table tbody tr{border:1px solid var(--pdf-line,#2a2a2a);border-radius:10px;background:var(--pdf-ink-1,#161616);padding:.4rem 1rem .55rem;margin:.75rem 0}
-\t.pssr-table tbody tr:nth-child(even) td{background:transparent}
-\t.pssr-table tbody tr:hover td{background:transparent}
-\t.pssr-table tbody td{border:0;padding:.34rem 0;display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
-\t.pssr-table tbody td::before{content:attr(data-label);flex:0 0 auto;font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);padding-top:.15em}
-\t.pssr-table td.pssr-district{display:block;font-size:1rem;padding:.3rem 0 .45rem}
-\t.pssr-table td.pssr-district::before{content:none}
-\t.pssr-table td.pssr-note{display:block;padding-top:.4rem}
-\t.pssr-table td.pssr-note::before{display:block;margin-bottom:.25rem}
-}
-.pssr-badge{display:inline-block;font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-row{border:1px solid var(--pdf-line,#2a2a2a);border-radius:10px;background:var(--pdf-ink-1,#161616);margin:.6rem 0}
+.pssr-row[hidden]{display:none!important}
+.pssr-row summary{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .6rem;padding:.7rem .9rem;cursor:pointer;list-style:none}
+.pssr-row summary::-webkit-details-marker{display:none}
+.pssr-row summary::marker{content:none}
+.pssr-row summary::before{content:"▸";display:inline-block;font-size:.95em;line-height:1;color:var(--pdf-mid,#a0a0a0);transition:transform .15s ease;flex:0 0 auto}
+.pssr-row[open] summary::before{transform:rotate(90deg);color:var(--pdf-signal-hi,#ffa366)}
+.pssr-s-votes{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;color:var(--pdf-mid,#a0a0a0);border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;padding:.15rem .55rem;white-space:nowrap}
+button.pssr-s-votes{background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none}
+button.pssr-s-votes:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+button.pssr-s-votes.pdq-voted{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
+button.pssr-s-votes:disabled{opacity:.55;cursor:default}
+.pssr-s-name{font-weight:600;min-width:10rem}
+.pssr-s-milestone{font-family:var(--pdf-mono,monospace);font-size:.75rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
+.pssr-s-milestone.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
+.pssr-s-milestone a{color:inherit;text-decoration:none}
+.pssr-s-milestone a:hover{color:var(--pdf-signal,#ff5a1f)}
+.pssr-card{margin:0;padding:.4rem .9rem .9rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.55rem 1.25rem;border-top:1px solid var(--pdf-line,#2a2a2a)}
+.pssr-card dt{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);margin-bottom:.15rem}
+.pssr-card dd{margin:0;font-size:.9375rem}
+.pssr-card .pssr-note{font-size:.875rem;color:rgba(245,245,245,.92)}
+.pssr-card .pssr-expected.is-overdue{color:var(--pdf-signal,#ff5a1f);font-weight:600}
+.pssr-vote-hint{margin:.25rem 0 0;font-size:.875rem;color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .5rem;border:1px solid var(--pdf-mid,#a0a0a0);border-radius:999px;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-badge--acknowledged{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--records_received_review_pending,.pssr-badge--partial_production{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pssr-badge--complete_published,.pssr-badge--appeal_compliance{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
+.pssr-badge--routing_portal{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
+.pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
+.pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 .pssr-cta{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.5rem}
 .pssr-template{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616)}
 .pssr-template summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
@@ -507,16 +497,8 @@ ENHANCEMENT_CSS = """<style>
 .pssr-template pre{white-space:pre-wrap;word-break:break-word;margin:0;padding:1.25rem;max-height:32rem;overflow:auto;font-size:.8125rem;line-height:1.55;color:var(--pdf-paper,#f5f5f5)}
 .pssr-appeal{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.25rem;margin-top:1rem}
 .pssr-appeal-docs{font-size:.875rem}
-.pssr-badge--routing_portal{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
-.pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
-.pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
-.pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 @media (max-width:719px){.pssr-badge{white-space:normal}}
-/* Queue table + intake form */
-.pssr-queue{margin:1.25rem 0}
-.pssr-queue .pssr-qn{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);font-variant-numeric:tabular-nums}
-.pssr-queue .pssr-qdate{font-family:var(--pdf-mono,monospace);font-size:.8125rem;color:var(--pdf-mid,#a0a0a0);white-space:nowrap;font-variant-numeric:tabular-nums}
-.pssr-queue .pssr-qcount{font-family:var(--pdf-mono,monospace);font-size:.8125rem;white-space:nowrap}
+/* Queue card list + intake form */
 .pssr-queue-form{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);margin:1.25rem 0 0}
 .pssr-queue-form summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
 .pssr-queue-form[open] summary{border-bottom:1px solid var(--pdf-line,#2a2a2a)}
@@ -532,34 +514,37 @@ ENHANCEMENT_CSS = """<style>
 .pdq-nojs{flex:1 1 100%;margin:0;font-size:.8125rem;color:var(--pdf-mid,#a0a0a0)}
 .pdq-nojs a{color:var(--pdf-signal-hi,#ffa366);text-decoration:none}
 .pdq-nojs a:hover{color:var(--pdf-signal,#ff5a1f);text-decoration:underline}
-.pssr-votes{white-space:nowrap}
 .pdq-vote{font-family:var(--pdf-mono,monospace);font-size:.75rem;letter-spacing:.08em;padding:.35rem .8rem;border:1px solid var(--pdf-line,#2a2a2a);border-radius:999px;color:var(--pdf-paper,#f5f5f5);background:transparent;cursor:pointer}
 .pdq-vote:hover{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pdq-voted{border-color:var(--pdf-signal,#ff5a1f);color:var(--pdf-signal,#ff5a1f)}
 .pdq-vote:disabled{opacity:.55;cursor:default}
+@media (max-width:719px){
+\t.pssr-controls{flex-direction:column;align-items:stretch}
+\t.pssr-search{flex-basis:auto;max-width:none}
+}
 </style>"""
 
 ENHANCEMENT_JS = """<script>
 (function () {
 	"use strict";
 	var doc = document;
-	var table = doc.querySelector(".pssr-table table");
+	var rows = Array.prototype.slice.call(doc.querySelectorAll(".pssr-row"));
 	var search = doc.querySelector(".pssr-search");
-	var chips = Array.prototype.slice.call(doc.querySelectorAll(".pssr-chip"));
+	var chips = Array.prototype.slice.call(doc.querySelectorAll(".pssr-chip:not(.pssr-expand)"));
 	var empty = doc.querySelector(".pssr-empty");
 	var count = doc.querySelector(".pssr-count");
-	var rows = table ? Array.prototype.slice.call(table.querySelectorAll("tbody tr")) : [];
+	var expand = doc.querySelector(".pssr-expand");
 	var today = new Date();
 	today.setHours(0, 0, 0, 0);
-	rows.forEach(function (tr) {
-		if (tr.getAttribute("data-status") !== "awaiting_initial_response") { return; }
-		var exp = tr.getAttribute("data-expected");
+	rows.forEach(function (row) {
+		if (row.getAttribute("data-status") !== "awaiting_initial_response") { return; }
+		var exp = row.getAttribute("data-expected");
 		if (!exp) { return; }
 		if (today > new Date(exp + "T00:00:00")) {
-			var span = tr.querySelector(".pssr-expected");
-			if (span) {
-				span.classList.add("is-overdue");
-				tr.title = "Past the expected initial-response date";
+			var m = row.querySelector(".pssr-s-milestone");
+			if (m) {
+				m.classList.add("is-overdue");
+				row.title = "Past the expected initial-response date";
 			}
 		}
 	});
@@ -568,10 +553,10 @@ ENHANCEMENT_JS = """<script>
 		if (!rows.length) { return; }
 		var q = search && search.value ? search.value.trim().toLowerCase() : "";
 		var shown = 0;
-		rows.forEach(function (tr) {
-			var ok = (status === "all" || tr.getAttribute("data-status") === status) &&
-				(!q || (tr.getAttribute("data-district") || "").indexOf(q) !== -1);
-			tr.hidden = !ok;
+		rows.forEach(function (row) {
+			var ok = (status === "all" || row.getAttribute("data-status") === status) &&
+				(!q || (row.getAttribute("data-district") || "").indexOf(q) !== -1);
+			row.hidden = !ok;
 			if (ok) { shown++; }
 		});
 		if (empty) { empty.hidden = shown > 0; }
@@ -587,6 +572,15 @@ ENHANCEMENT_JS = """<script>
 			apply();
 		});
 	});
+	if (expand) {
+		expand.addEventListener("click", function () {
+			var open = expand.getAttribute("data-open") !== "1";
+			expand.setAttribute("data-open", open ? "1" : "0");
+			expand.setAttribute("aria-pressed", open ? "true" : "false");
+			expand.textContent = open ? "Collapse all" : "Expand all";
+			rows.forEach(function (row) { row.open = open; });
+		});
+	}
 	var wireCopy = function () {
 		var copyBtn = doc.querySelector(".pssr-copy");
 		if (!copyBtn) { return; }
@@ -649,9 +643,8 @@ def sanitize(snapshot):
 def queue_rows(rows, queue):
     """Clean queue DB rows against tracker rows for rendering: drop entries
     whose district or shared jurisdiction already appears in the tracker
-    (case-insensitive, trimmed); keep only still-queued rows; order by
-    first_requested ascending, then last_requested descending (newest active
-    tie-break)."""
+    (case-insensitive, trimmed); keep only still-queued rows; order by votes
+    descending, then first_requested ascending as the tie-break."""
     known = set()
     for r in rows:
         known.add(str(r["district"]).strip().lower())
@@ -660,8 +653,8 @@ def queue_rows(rows, queue):
             if q.get("queued", 1)
             and str(q["district"]).strip().lower() not in known
             and str(q["jurisdiction"]).strip().lower() not in known]
-    keep.sort(key=lambda q: q["last_requested"], reverse=True)
     keep.sort(key=lambda q: q["first_requested"])
+    keep.sort(key=lambda q: int(q.get("votes", 0) or 0), reverse=True)
     return keep
 
 
@@ -724,7 +717,7 @@ def qa_group(question, answer):
     return group(inner, attrs=attrs)
 
 
-def build_blocks(project, rows, documents=(), queue=()):
+def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
     total = len(rows)
     acknowledged = sum(1 for r in rows if r["status"] == "acknowledged")
     productions = sum(1 for r in rows if r.get("records_url"))
@@ -734,7 +727,7 @@ def build_blocks(project, rows, documents=(), queue=()):
 
     blocks = []
 
-    # 1. Hero -------------------------------------------------------------
+    # 1. Hero (was # 1) -
     stats = (
         '<div class="pdf-stats"><div class="pdf-stats-grid">'
         f'<div class="pdf-stat"><div class="pdf-stat-num">{total}</div>'
@@ -762,51 +755,7 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(hero_inner, attrs='{"align":"wide","className":"pssr-hero"}', class_name="pssr-hero"))
 
-    # 2. Overview ----------------------------------------------------------
-    n = total
-    overview = "\n".join([
-        h(2, "Why this project exists"),
-        p("Parent Data Force is sending substantially the same Massachusetts Public "
-          "Records Law request to public school districts across the Commonwealth. "
-          "The request seeks final or executed student-related agreements entered "
-          "into, finalized, materially amended, or extended from September 18, 2021 "
-          f"through the date of each district’s response. The project currently "
-          f"covers {n} districts."),
-        p("The request asks for final written agreements that resolve or memorialize "
-          "student-related educational disputes — settlement agreements, resolution "
-          "agreements, MOUs and MOAs, mediation agreements, stipulations and consent "
-          "agreements, side agreements, material amendments and addenda, and other "
-          "final written agreements. It covers both special-education and "
-          "general-education disputes, including placement, services, evaluations, "
-          "eligibility, accommodations, compensatory education, tuition and "
-          "reimbursement, transportation, extended school year, discipline and "
-          "exclusion, access to programming, bullying and harassment, "
-          "discrimination, civil-rights complaints, and enrollment."),
-        p("The request expressly excludes personally identifiable student "
-          "information; staff and employment settlements; collective-bargaining and "
-          "employee grievance matters; personnel discipline and separation matters; "
-          "workers’ compensation; vendor, procurement, construction, and property "
-          "disputes; and unrelated commercial matters. Districts may redact student "
-          "names and other legally protected identifiers."),
-        p("A statewide comparison can help show how student-related disputes are "
-          "resolved, what remedies are used, how districts respond to public-records "
-          "requests, and whether recurring patterns emerge. We do not claim a "
-          "pattern until records actually support it, and we clearly distinguish "
-          "what was requested, what a district said, and what the produced records "
-          "show."),
-    ])
-    blocks.append(group(overview, attrs='{"anchor":"overview"}', anchor="overview"))
-
-    # 3. What we are requesting ---------------------------------------------
-    requesting = "\n".join([
-        h(2, "What we are requesting"),
-        p(REQUEST_INTRO),
-        ul(REQUEST_ITEMS),
-        p(f"<strong>{PRIVACY_LEAD}</strong> {PRIVACY_BODY}"),
-    ])
-    blocks.append(group(requesting))
-
-    # 4. District tracker -----------------------------------------------------
+    # 2. District tracker (was # 4) -
     chips = ['<button type="button" class="pdf-tab pssr-chip is-active" data-status="all">All</button>']
     seen = [s for s in STATUS_BADGES if any(r["status"] == s for r in rows)]
     for s in seen:
@@ -820,28 +769,18 @@ def build_blocks(project, rows, documents=(), queue=()):
         '<input type="search" class="pssr-search" placeholder="Search district or town…" '
         'aria-label="Search district or town">'
         f'<div class="pdf-tabs pssr-tabs">{"".join(chips)}</div>'
+        '<button type="button" class="pdf-tab pssr-chip pssr-expand" data-open="0" '
+        'aria-pressed="false">Expand all</button>'
         "</div>"
     )
 
-    head_cells = (
-        "<tr>"
-        '<th scope="col">District</th>'
-        '<th scope="col">Timeline</th>'
-        '<th scope="col">Acknowledged</th>'
-        '<th scope="col">Fee</th>'
-        '<th scope="col">Records</th>'
-        '<th scope="col">Status</th>'
-        '<th scope="col">Latest public note</th>'
-        '<th scope="col">Documents</th>'
-        "</tr>"
-    )
     docs_by_district = {}
     for d in documents:
         docs_by_district.setdefault(d["district"], []).append(d)
     doc_order = {"request": 0, "response": 1, "records": 2, "appeal": 3}
     for dl in docs_by_district.values():
         dl.sort(key=lambda d: doc_order.get(d.get("kind"), 99))
-    body_rows = []
+    tracker_rows = []
     for r in rows:
         note = esc(r["public_note"]) if r.get("public_note") else "—"
         data_district = attr(f"{r['district']} {r['jurisdiction']}".lower())
@@ -885,106 +824,95 @@ def build_blocks(project, rows, documents=(), queue=()):
                 for d in docs)
         else:
             docs_cell = "—"
-        body_rows.append(
-            f'<tr data-district="{data_district}" data-status="{attr(r["status"])}" '
-            f'data-submitted="{attr(r["submitted"])}" data-expected="{attr(r["expected_initial_response"])}">'
-            f'<td class="pssr-district" data-label="District">{esc(r["district"])}</td>'
-            f'<td class="pssr-timeline" data-label="Timeline">'
-            f'<span>{timeline_head}</span><span class="pssr-expected">{timeline_tail}</span></td>'
-            f'<td class="pssr-acked" data-label="Acknowledged">{ack_cell}</td>'
-            f'<td class="pssr-fee" data-label="Fee">{fee_cell if fee_cell is not None else ""}</td>'
-            f'<td class="pssr-records" data-label="Records">{records_cell}</td>'
-            f'<td class="pssr-status" data-label="Status">{status_cell}</td>'
-            f'<td class="pssr-note" data-label="Latest note">{note}</td>'
-            f'<td class="pssr-docs" data-label="Documents">{docs_cell}</td>'
-            "</tr>"
+        tvotes = (tracker_votes or {}).get(r["district"].strip().lower(), 0)
+        if r.get("records_url"):
+            milestone = (f'<a class="pssr-s-milestone" href="{attr(r["records_url"])}" '
+                         f'title="Published production (PII-reviewed)">Records published</a>')
+        elif r.get("acknowledged"):
+            milestone = f'<span class="pssr-s-milestone">Acknowledged {fmt_short(r["acknowledged"])}</span>'
+        elif r.get("fee_estimate"):
+            milestone = f'<span class="pssr-s-milestone">Fee {esc(r["fee_estimate"])}</span>'
+        elif r["expected_initial_response"]:
+            milestone = (f'<span class="pssr-s-milestone">Response due '
+                         f'{fmt_short(r["expected_initial_response"])}</span>')
+        else:
+            milestone = f'<span class="pssr-s-milestone">Sent {fmt_short(r["submitted"])}</span>'
+        tracker_rows.append(
+            f'<details class="pssr-row" data-district="{data_district}" '
+            f'data-status="{attr(r["status"])}" '
+            f'data-submitted="{attr(r["submitted"])}" '
+            f'data-expected="{attr(r["expected_initial_response"])}">'
+            f"<summary>"
+            f'<button type="button" class="pdq-vote pssr-s-votes" data-district="{attr(r["district"])}" '
+            f'aria-label="{attr("Vote up " + r["district"])} (opens nothing — vote stays collapsed)">▲ {tvotes}</button>'
+            f'<span class="pssr-s-name">{esc(r["district"])}</span>'
+            f"{status_cell}"
+            f"{milestone}"
+            f"</summary>"
+            f'<dl class="pssr-card">'
+            f"<div><dt>Timeline</dt><dd><span>{timeline_head}</span>"
+            f'<span class="pssr-expected">{timeline_tail}</span></dd></div>'
+            f"<div><dt>Acknowledged</dt><dd>{ack_cell}</dd></div>"
+            f"<div><dt>Fee</dt><dd>{fee_cell if fee_cell is not None else ""}</dd></div>"
+            f"<div><dt>Records</dt><dd>{records_cell}</dd></div>"
+            f"<div><dt>Status</dt><dd>{status_cell}</dd></div>"
+            f"<div><dt>Latest note</dt><dd>{note}</dd></div>"
+            f"<div><dt>Documents</dt><dd>{docs_cell}</dd></div>"
+            f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
+            f'data-district="{attr(r["district"])}" '
+            f'aria-label="{attr("Vote up " + r["district"])}">▲ Vote up</button></dd></div>'
+            f"</dl>"
+            f"</details>"
         )
-    table_block = (
-        '<!-- wp:table {"align":"wide","className":"pssr-table"} -->\n'
-        '<figure class="wp-block-table alignwide pssr-table"><table>'
-        f"<thead>{head_cells}</thead>"
-        f"<tbody>{''.join(body_rows)}</tbody>"
-        "</table></figure>\n"
-        "<!-- /wp:table -->"
-    )
+    rows_block = html_block('<div class="pssr-rows">' + "".join(tracker_rows) + "</div>")
 
     tracker_inner = "\n".join([
         h(2, "Live district tracker"),
         p(f"{total} districts have received the request. Use the search box or the "
-          "status filters to narrow the table."),
+          "status filters to narrow the list — tap a district to open its full card."),
         html_block(controls),
-        html_block('<p class="pssr-count" hidden aria-live="polite"></p>'),
-        table_block,
+        rows_block,
         html_block(ENHANCEMENT_CSS
+                   + '\n<p class="pssr-count" hidden aria-live="polite"></p>\n'
                    + '\n<p class="pssr-empty" hidden>No districts match that filter.</p>\n'
                    + ENHANCEMENT_JS),
     ])
     blocks.append(group(tracker_inner, attrs='{"align":"wide","className":"pssr-tracker"}',
                         class_name="pssr-tracker alignwide", anchor="districts"))
 
-    # 4b. Appeals & notable responses -----------------------------------------
-    appeal_rows = [r for r in rows if r.get("appeal_note")]
-    if appeal_rows:
-        order = {"request": 0, "response": 1, "appeal": 2}
-        docs_by_district = {}
-        for d in documents:
-            docs_by_district.setdefault(d["district"], []).append(d)
-        for dl in docs_by_district.values():
-            dl.sort(key=lambda d: order.get(d.get("kind"), 99))
-        appeal_items = []
-        for r in appeal_rows:
-            inner = h(3, f"{esc(r['district'])} — fee estimate appealed") + "\n" + p(esc(r["appeal_note"]))
-            docs = docs_by_district.get(r["district"])
-            if docs:
-                links = " · ".join(
-                    f'<a href="{attr(d["url"])}">{esc(d["label"])}</a>' for d in docs)
-                inner += "\n" + p(f"Source documents: {links}", class_name="pssr-appeal-docs")
-            appeal_items.append(group(inner, class_name="pssr-appeal"))
-        appeals_inner = h(2, "Appeals &amp; notable responses") + "\n" + "\n".join(appeal_items)
-        blocks.append(group(appeals_inner))
-
-    # 4c. Requested next -------------------------------------------------------
+    # 3. Requested next (was # 4c) -
     if queue:
-        qhead = (
-            "<tr>"
-            '<th scope="col">#</th>'
-            '<th scope="col">District</th>'
-            '<th scope="col">First requested</th>'
-            '<th scope="col">Last requested</th>'
-            '<th scope="col">Times requested</th>'
-            '<th scope="col">Votes</th>'
-            '<th scope="col">Note</th>'
-            "</tr>"
-        )
-        qbody = []
+        qrows = []
         for i, q in enumerate(queue, 1):
             note = esc(q["note"]) if q.get("note") else "—"
-            qbody.append(
-                "<tr>"
-                f'<td class="pssr-qn" data-label="#">{i}</td>'
-                f'<td class="pssr-district" data-label="District">{esc(q["district"])}</td>'
-                f'<td class="pssr-qdate" data-label="First requested">{fmt_short(q["first_requested"])}</td>'
-                f'<td class="pssr-qdate" data-label="Last requested">{fmt_short(q["last_requested"])}</td>'
-                f'<td class="pssr-qcount" data-label="Times requested">{q["requested_count"]}</td>'
-                f'<td class="pssr-votes" data-label="Votes">'
-                f'<button type="button" class="pdq-vote" data-district="{attr(q["district"])}" '
-                f'aria-label="{attr(f"Vote up {q['district']}")}">▲ {q.get("votes", 0)}</button></td>'
-                f'<td class="pssr-note" data-label="Note">{note}</td>'
-                "</tr>"
+            qrows.append(
+                '<details class="pssr-row">'
+                "<summary>"
+                f'<span class="pssr-s-qn">{i}</span>'
+                f'<button type="button" class="pdq-vote pssr-s-votes" data-district="{attr(q["district"])}" '
+                f'aria-label="{attr("Vote up " + q["district"])} (opens nothing — vote stays collapsed)">▲ {q.get("votes", 0)}</button>'
+                f'<span class="pssr-s-name">{esc(q["district"])}</span>'
+                f'<span class="pssr-s-milestone">first {fmt_short(q["first_requested"])}'
+                f' · requested {q["requested_count"]}×</span>'
+                "</summary>"
+                '<dl class="pssr-card">'
+                f"<div><dt>First requested</dt><dd>{fmt_short(q["first_requested"])}</dd></div>"
+                f"<div><dt>Last requested</dt><dd>{fmt_short(q["last_requested"])}</dd></div>"
+                f"<div><dt>Times requested</dt><dd>{q['requested_count']}</dd></div>"
+                f"<div><dt>Note</dt><dd>{note}</dd></div>"
+                f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
+                f'data-district="{attr(q["district"])}" '
+                f'aria-label="{attr("Vote up " + q["district"])}">▲ Vote up</button></dd></div>'
+                "</dl>"
+                "</details>"
             )
-        queue_block = (
-            '<!-- wp:table {"align":"wide","className":"pssr-queue pssr-table"} -->\n'
-            '<figure class="wp-block-table alignwide pssr-queue pssr-table"><table>'
-            f"<thead>{qhead}</thead>"
-            f"<tbody>{''.join(qbody)}</tbody>"
-            "</table></figure>\n"
-            "<!-- /wp:table -->"
-        )
+        queue_block = html_block('<div class="pssr-rows">' + "".join(qrows) + "</div>")
     else:
         queue_block = p("Nothing in the queue yet — add your district below.")
     queue_inner = "\n".join([
         h(2, QUEUE_HEAD),
         p(QUEUE_EXPLAIN),
+        p(QUEUE_VOTE_HINT, class_name="pssr-vote-hint"),
         queue_block,
         buttons([("Donate", DONATE_URL, False)]),
         p("Every donation buys more records requests."),
@@ -992,7 +920,7 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(queue_inner, attrs='{"anchor":"queue"}', anchor="queue"))
 
-    # 5. Request-your-district CTA -------------------------------------------
+    # 4. Request-your-district CTA (was # 5) -
     cta_inner = "\n".join([
         h(2, CTA_HEAD),
         p(CTA_SUPPORT),
@@ -1000,7 +928,7 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(cta_inner, attrs='{"anchor":"request","className":"pssr-cta"}', anchor="request", class_name="pssr-cta"))
 
-    # 6. Template section -------------------------------------------------------
+    # 5. Template section (was # 6) -
     template_inner = "\n".join([
         h(2, "Use the request yourself"),
         p(TEMPLATE_INTRO),
@@ -1018,7 +946,51 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(template_inner, attrs='{"anchor":"template"}', anchor="template"))
 
-    # 7. Records library -----------------------------------------------------
+    # 6. What we are requesting (was # 3) -
+    requesting = "\n".join([
+        h(2, "What we are requesting"),
+        p(REQUEST_INTRO),
+        ul(REQUEST_ITEMS),
+        p(f"<strong>{PRIVACY_LEAD}</strong> {PRIVACY_BODY}"),
+    ])
+    blocks.append(group(requesting))
+
+    # 7. Overview (was # 2) -
+    n = total
+    overview = "\n".join([
+        h(2, "Why this project exists"),
+        p("Parent Data Force is sending substantially the same Massachusetts Public "
+          "Records Law request to public school districts across the Commonwealth. "
+          "The request seeks final or executed student-related agreements entered "
+          "into, finalized, materially amended, or extended from September 18, 2021 "
+          f"through the date of each district’s response. The project currently "
+          f"covers {n} districts."),
+        p("The request asks for final written agreements that resolve or memorialize "
+          "student-related educational disputes — settlement agreements, resolution "
+          "agreements, MOUs and MOAs, mediation agreements, stipulations and consent "
+          "agreements, side agreements, material amendments and addenda, and other "
+          "final written agreements. It covers both special-education and "
+          "general-education disputes, including placement, services, evaluations, "
+          "eligibility, accommodations, compensatory education, tuition and "
+          "reimbursement, transportation, extended school year, discipline and "
+          "exclusion, access to programming, bullying and harassment, "
+          "discrimination, civil-rights complaints, and enrollment."),
+        p("The request expressly excludes personally identifiable student "
+          "information; staff and employment settlements; collective-bargaining and "
+          "employee grievance matters; personnel discipline and separation matters; "
+          "workers’ compensation; vendor, procurement, construction, and property "
+          "disputes; and unrelated commercial matters. Districts may redact student "
+          "names and other legally protected identifiers."),
+        p("A statewide comparison can help show how student-related disputes are "
+          "resolved, what remedies are used, how districts respond to public-records "
+          "requests, and whether recurring patterns emerge. We do not claim a "
+          "pattern until records actually support it, and we clearly distinguish "
+          "what was requested, what a district said, and what the produced records "
+          "show."),
+    ])
+    blocks.append(group(overview, attrs='{"anchor":"overview"}', anchor="overview"))
+
+    # 8. Records library (was # 7) -
     library_rows = [r for r in rows if r.get("records_url")]
     if library_rows:
         lib_items = []
@@ -1048,7 +1020,28 @@ def build_blocks(project, rows, documents=(), queue=()):
         ])
     blocks.append(group(records_inner, attrs='{"anchor":"records"}', anchor="records"))
 
-    # 8. What happens when records arrive ---------------------------------------
+    # 9. Appeals & notable responses (was # 4b) -
+    appeal_rows = [r for r in rows if r.get("appeal_note")]
+    if appeal_rows:
+        order = {"request": 0, "response": 1, "appeal": 2}
+        docs_by_district = {}
+        for d in documents:
+            docs_by_district.setdefault(d["district"], []).append(d)
+        for dl in docs_by_district.values():
+            dl.sort(key=lambda d: order.get(d.get("kind"), 99))
+        appeal_items = []
+        for r in appeal_rows:
+            inner = h(3, f"{esc(r['district'])} — fee estimate appealed") + "\n" + p(esc(r["appeal_note"]))
+            docs = docs_by_district.get(r["district"])
+            if docs:
+                links = " · ".join(
+                    f'<a href="{attr(d["url"])}">{esc(d["label"])}</a>' for d in docs)
+                inner += "\n" + p(f"Source documents: {links}", class_name="pssr-appeal-docs")
+            appeal_items.append(group(inner, class_name="pssr-appeal"))
+        appeals_inner = h(2, "Appeals &amp; notable responses") + "\n" + "\n".join(appeal_items)
+        blocks.append(group(appeals_inner))
+
+    # 10. What happens when records arrive (was # 8) -
     arrival = "\n".join([
         h(2, "What happens when records arrive"),
         p("When a district produces records, each production goes through the same "
@@ -1071,7 +1064,7 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(arrival))
 
-    # 9. Legal context ---------------------------------------------------------
+    # 11. Legal context (was # 9) -
     legal = "\n".join([
         h(2, "Legal context"),
         p(LEGAL_PARA_1),
@@ -1080,13 +1073,13 @@ def build_blocks(project, rows, documents=(), queue=()):
     ])
     blocks.append(group(legal))
 
-    # 10. FAQ ---------------------------------------------------------------------
+    # 12. FAQ (was # 10) -
     faq_inner = "\n".join([h(2, "Frequently asked questions")] + [
         qa_group(q.format(contact=contact), a.format(contact=contact)) for q, a in FAQ
     ])
     blocks.append(group(faq_inner, attrs='{"anchor":"faq"}', anchor="faq"))
 
-    # 11. Footer CTA -----------------------------------------------------------------
+    # 13. Footer CTA (was # 11) -
     footer_inner = "\n".join([
         h(2, FOOTER_CTA),
         p(f'Email <a href="mailto:{contact}">{contact}</a> to request a district or '

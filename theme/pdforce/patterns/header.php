@@ -28,11 +28,6 @@
 			<!-- /wp:group -->
 			<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|10"}},"layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"right"}} -->
 			<div class="wp-block-group">
-			<!-- wp:group {"className":"pdforce-navsearch","layout":{"type":"flex","flexWrap":"nowrap","alignItems":"center"}} -->
-			<div class="wp-block-group pdforce-navsearch">
-				<!-- wp:search {"label":"Search","showLabel":false,"placeholder":"Search the site…","buttonText":"Search"} /-->
-			</div>
-			<!-- /wp:group -->
 	<!-- wp:navigation {"overlayBackgroundColor":"base","overlayTextColor":"contrast","layout":{"type":"flex","justifyContent":"right","flexWrap":"wrap"}} -->
 			<!-- wp:navigation-link {"label":"Data","url":"https://www.parentdataforce.com/data/"} /-->
 			<!-- wp:navigation-link {"label":"Districts","url":"https://www.parentdataforce.com/districts/"} /-->
@@ -43,6 +38,7 @@
 			<!-- wp:navigation-link {"label":"About","url":"https://www.parentdataforce.com/about/"} /-->
 			<!-- wp:navigation-link {"label":"\u2764 Donate","url":"https://www.parentdataforce.com/donate/"} /-->
 			<!-- wp:navigation-link {"label":"Account","url":"/account/"} /-->
+			<!-- wp:search {"label":"Search","showLabel":false,"placeholder":"Search the site…","buttonPosition":"no-button","className":"pdforce-navsearch"} /-->
 			<!-- /wp:navigation -->
 			</div>
 			<!-- /wp:group -->

@@ -7,7 +7,7 @@ Description: Custom block theme for the Parent Data Force news site (parentdataf
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.2
-Version: 1.13.8
+Version: 1.13.10
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: pdforce
@@ -76,14 +76,15 @@ h1, h2, h3, h4, h5, h6, blockquote, caption, figcaption, p {
 }
 
 /*
- * Sitewide nav search box (patterns/header.php .pdforce-navsearch).
- * Hidden below 900px like the static-plane nav search.
+ * Header nav search: input-only pill inside the navigation block
+ * (patterns/header.php). The same instance renders in the mobile
+ * overlay, so there is no breakpoint hide anymore.
  */
 .pdforce-navsearch {
 	flex-shrink: 0;
 }
 .pdforce-navsearch .wp-block-search__inside-wrapper {
-	width: 13rem;
+	width: 11rem;
 }
 .pdforce-navsearch .wp-block-search__input {
 	min-width: 0;
@@ -91,12 +92,22 @@ h1, h2, h3, h4, h5, h6, blockquote, caption, figcaption, p {
 	font-size: 0.9rem;
 	height: auto;
 }
-.pdforce-navsearch .wp-block-search__button {
-	padding: 0.25rem 0.75rem;
-	font-size: 0.9rem;
+.pdforce-navsearch .wp-block-search__input:focus {
+	outline: 2px solid var(--wp--preset--color--accent-1);
+	outline-offset: 1px;
 }
 @media (max-width: 899px) {
-	.pdforce-navsearch {
-		display: none;
+	.pdforce-navsearch .wp-block-search__inside-wrapper {
+		width: 100%;
 	}
+}
+/* In the mobile overlay the form is a column flex item and hugs content;
+   stretch it so the pill fills the overlay. */
+.wp-block-navigation__responsive-container.has-modal-open .pdforce-navsearch {
+	width: 100%;
+}
+/* Page-level search form on search/404 templates. */
+.pdf-page-search {
+	max-width: 26rem;
+	margin-bottom: var(--wp--preset--spacing--30);
 }

@@ -182,6 +182,18 @@ ARTICLES = [
         "categories": [16, 9],   # Public Records (new), News
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article29_somerset_appeal.md",
+        "slug": "somerset-fee-and-time-petition-under-appeal",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article30_settlement_update.md",
+        "slug": "watertown-59-agreements-no-fee",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

@@ -15,6 +15,10 @@ Pure stdlib. Supports exactly the subset used by the "sped news" articles:
   - Inline **bold** / *italic*  -> <strong> / <em>
   - Inline [text](url)          -> <a href> (used sparingly, e.g. linking
                                   articles to the project page)
+  - `==figure==`               -> <span class="pdf-figure"> (inline emphasis for a
+                                  data run: money, dockets, counts)
+  - `!> text`                 -> core/paragraph, class "pdf-callout" (boxed aside)
+  - `!| text`                 -> core/paragraph, class "pdf-pullquote" (large quote)
 
 Usage:
   python md_to_blocks.py <article.md>           # print body block HTML
@@ -29,6 +33,10 @@ UL_RE = re.compile(r"^-\s+(.*)$")
 OL_RE = re.compile(r"^\d+\.\s+(.*)$")
 IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^()\s]+)\)$")
 
+FIG_RE = re.compile(r"==([^=\n]+?)==")
+CALLOUT_RE = re.compile(r"^!>\s*(.*)$")
+PULL_RE = re.compile(r"^!\|\s*(.*)$")
+
 
 def escape(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -40,6 +48,7 @@ def inline(text):
     t = re.sub(r"\[([^\]]+)\]\(([^()\s]+)\)", r'<a href="\2">\1</a>', t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
     t = re.sub(r"\*([^*\n]+)\*", r"<em>\1</em>", t)
+    t = re.sub(r"==([^=\n]+?)==", r'<span class="pdf-figure">\1</span>', t)
     return t
 
 
@@ -106,6 +115,19 @@ def convert(md_text):
         items.clear()
 
     list_items, list_ordered = [], None
+
+    special = []          # [kind, [lines]] while a callout/pull-quote is open
+
+    def flush_special():
+        if not special:
+            return
+        cls = "pdf-callout" if special[0] == "callout" else "pdf-pullquote"
+        out.append(
+            f'<!-- wp:paragraph {{"className":"{cls}"}} -->\n'
+            f'<p class="{cls}">{inline(" ".join(special[1]))}</p>\n'
+            "<!-- /wp:paragraph -->"
+        )
+        del special[:]
     k = 0
     while k < len(rest):
         raw = rest[k]
@@ -129,8 +151,25 @@ def convert(md_text):
 
         if not line:
             flush_para()
+            flush_special()
             k += 1
             continue
+
+        cal, pull = CALLOUT_RE.match(line), PULL_RE.match(line)
+        if cal or pull:
+            flush_para()
+            if list_items is not None:
+                flush_list(list_items, list_ordered)
+                list_items, list_ordered = None, None
+            kind = "callout" if cal else "pullquote"
+            if not special or special[0] != kind:
+                flush_special()
+                special.extend([kind, []])
+            special[1].append((cal or pull).group(1))
+            k += 1
+            continue
+        if special:
+            flush_special()
 
         if HR_RE.match(line):
             flush_para()
@@ -175,6 +214,7 @@ def convert(md_text):
     flush_para()
     if list_items is not None:
         flush_list(list_items, list_ordered)
+    flush_special()
 
     return title, dek, "\n\n".join(out)
 

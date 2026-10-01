@@ -59,7 +59,7 @@ WordPress Full Site Editing resolves a request through three hops. Each hop is a
 2. `<!-- wp:template-part {"slug":"header"} /-->` → `theme/pdforce/parts/header.html`
 3. `<!-- wp:pattern {"slug":"pdforce/header"} /-->` → `theme/pdforce/patterns/header.php`
 
-**Invariant:** the `Slug:` header in every `patterns/*.php` must match the `pdforce/<slug>` string referenced from `templates/*.html` and `parts/*.html`, and `<slug>` must match the filename minus `.php`. A rename that breaks this silently drops blocks from rendered output. All 99 patterns currently conform.
+**Invariant:** the `Slug:` header in every `patterns/*.php` must match the `pdforce/<slug>` string referenced from `templates/*.html` and `parts/*.html`, and `<slug>` must match the filename minus `.php`. A rename that breaks this silently drops blocks from rendered output. All 102 patterns currently conform.
 
 ## Key Directories
 
@@ -68,8 +68,8 @@ WordPress Full Site Editing resolves a request through three hops. Each hop is a
 | `theme/pdforce/` | The live block theme. Deployed wholesale. |
 | `theme/pdforce/templates/` | 9 FSE templates. `single-long-form.html` is the custom one for articles. |
 | `theme/pdforce/parts/` | 7 template parts (`header`, `footer`, `sidebar`, …). |
-| `theme/pdforce/patterns/` | 99 PHP block patterns. Filename ↔ `Slug:` ↔ template reference. |
-| `theme/pdforce/styles/` | Global style variations + `blocks/` partial styles. |
+| `theme/pdforce/patterns/` | 102 PHP block patterns. Filename ↔ `Slug:` ↔ template reference. |
+| `theme/pdforce/styles/` | Five global style variations (`0*.json`) + `blocks/` partial styles + `sections/`. |
 | `tools/` | Current Python tooling. **Stdlib only.** |
 | `rest/` | REST CLI, credentials, one-shot PHP helpers, `.htaccess` rules. |
 | `docs/migration/` | **Legacy.** Historical migration scripts and plans. See caveats below. |
@@ -96,14 +96,19 @@ python ../docs/migration/verify_changes.py   # needs `requests` (legacy)
 
 ```bash
 cd tools
-python deploy_theme.py              # uploads 237 files, switches theme, flushes permalinks
-python deploy_theme.py --upload     # FTP upload only (no theme switch)
-python deploy_theme.py --fix        # runs the one-shot PHP helper only
-python publish_articles.py          # creates 3 draft posts
-python upload_theme.py              # legacy: uploads a fixed 5-file list
-python fetch_theme.py               # pulls live theme INTO theme/pdforce/ (overwrites local!)
-python wp_mirror.py                 # mirrors whole install into ../wordpress-copy/
+python deploy_theme.py --all         # uploads every theme file (use after any theme edit)
+python deploy_theme.py                # size-skip upload: a same-byte-length edit ships NOTHING
+python deploy_theme.py --dry-run      # list what would be uploaded
+python deploy_theme.py --fix          # runs the one-shot PHP helper only
+python prune_theme_styles.py          # lists theme style files live but absent from the repo
+python prune_theme_styles.py --delete # DELETES them over FTP
+python build_contribute_page.py       # upserts /contribute/ (content is the pdforce/contribute pattern)
+python build_settlements_page.py --snapshot ...  # upserts the settlement tracker page
+python publish_articles.py             # creates 3 draft posts
+python fetch_theme.py                  # pulls live theme INTO theme/pdforce/ (overwrites local!)
 ```
+
+`deploy_theme.py` only ever uploads — it never removes. Deleting a theme file locally does **not** delete it live; run `prune_theme_styles.py --delete` for style variations. That host's FTP also refuses `MLSD` on subpaths (`550 Can't check for file existence`), so prune recurses on `NLST` and uses `SIZE` to tell files from directories.
 
 `fetch_theme.py` is the dangerous one in the reverse direction: it overwrites local theme files with whatever is live. Commit before running it.
 
@@ -234,6 +239,9 @@ A `slug` in `theme/pdforce/styles/blocks/*.json` becomes the className `is-style
 | `**bold**` / `*italic*` | `<strong>` / `<em>` |
 | `![alt](url)` standalone line | `core/image` → `<figure class="wp-block-image"><img …/></figure>` |
 | `![alt\|Caption](url)` standalone line | Same, plus `<figcaption class="wp-element-caption">` after the `<img>`; caption supports inline bold/italic |
+| `==figure==` | `<span class="pdf-figure">` — inline data emphasis (money, dockets, counts). Runs last, after bold/italic, so `==**x**==` nests correctly |
+| `!> text` standalone line | `core/paragraph {"className":"pdf-callout"}` — boxed aside; consecutive lines join, a blank line or a different marker flushes |
+| `!\| text` standalone line | `core/paragraph {"className":"pdf-pullquote"}` — large pull-quote line; same continuation rule |
 
 Public API: `convert(md_text) -> (title, dek, body)`, `slugify(title)`, `inline(text)`, `escape(text)`.
 
@@ -278,9 +286,11 @@ Note `new-post` defaults to `--status publish`. Pass `--status draft` explicitly
 
 ### `theme.json` design tokens
 
-Palette (slug → hex): `base` `#0b0b0b`, `contrast` `#f5f5f5`, **`accent-1` `#ff5a1f`** (brand orange), `accent-2` `#ffa366`, `accent-3` `#161616`, `accent-4` `#a0a0a0` (muted text), `accent-5` `#2a2a2a`, `accent-6` `#1d1d1d` (borders/separators).
+Palette (slug → hex), the "Ember" look baked as the site default: `base` `#101112`, `contrast` `#dcdfe3`, **`accent-1` `#ff5a1f`** (brand orange), `accent-2` `#ffa366`, `accent-3` `#17191b`, `accent-4` `#9aa0a6` (muted text), `accent-5` `#383c41`, `accent-6` `#202327`. Four more looks ship as style variations in `theme/pdforce/styles/`: Current (the pre-1.14 look, verbatim), Slate, Paper, Split. Selectable in Site Editor → Styles; Ember is the `theme.json` default so every visitor sees it.
 
-Layout: `contentSize: 750px` (widened from upstream 645px for long-form reading), `wideSize: 1340px`. Body: Inter, `fontSize: large`, `lineHeight: 1.6`, `blockGap: 1.5rem`. Fonts load from Google Fonts URLs; `assets/fonts/` holds self-hosted woff2 families (Beiruti, Fira Code, Fira Sans, etc.).
+Layout: `contentSize: 750px` (widened from upstream 645px for long-form reading), `wideSize: 1340px`. Body: Vollkorn (preset slug `body`), `fontSize: medium`, `lineHeight: 1.65`, `blockGap: 1.5rem`. Both families are **self-hosted** variable woff2 in `assets/fonts/` (Vollkorn normal+italic, Fira Code) and loaded through `settings.typography.fontFamilies` `fontFace` — no Google Fonts dependency. Other families (Beiruti, Fira Sans, Literata, Manrope, Platypi, Roboto Slab, Ysabeau) are still on disk but unreferenced.
+
+**Style variations must live directly in `theme/pdforce/styles/*.json`** — WordPress only registers global variations from that directory's top level, not from subdirectories. `styles/blocks/` and `styles/sections/` are separate resolvers and must not be moved up.
 
 `customTemplates`: `page-no-title` (pages) and **`single-long-form`** (posts) — the latter is what makes the REST `template` field accept that value.
 
@@ -326,7 +336,7 @@ Verification is **end-to-end against production**. Do not write unit tests for t
 
 ```bash
 cd tools
-python deploy_theme.py            # or --upload for content-only changes
+python deploy_theme.py --all       # ALWAYS --all; the default path skips same-size files
 python deploy_theme.py --verify
 ```
 
@@ -361,6 +371,11 @@ Always delete the throwaway post. Never publish it under a real slug.
 2. **Theme slug mismatch.** Symptom: blocks silently missing from rendered pages, no error. Cause: a `Slug:` header in `patterns/*.php` diverging from the `pdforce/<slug>` reference in `templates/`/`parts/`. Check after any rename.
 3. **`style.min.css` drift.** Symptom: CSS edits have no effect in production. Cause: `style.css` edited without `npm run build`; production enqueues the min file when `SCRIPT_DEBUG` is off.
 4. **`fetch_theme.py` clobbering local work.** It overwrites `theme/pdforce/` from live. Commit first.
+5. **WP block-gap margin inside a custom grid.** Symptom: cards in a CSS grid sit 24px lower than their row-mates. Cause: WordPress's flow layout applies `margin-top` to every non-first child, which lands on the grid's children and fights a `gap: 1px`. Fix: `.mygrid > * { margin-top: 0 }`.
+6. **Source order beating a media query.** Symptom: a `@media (max-width: 900px)` collapse "does nothing". Cause: the base rule is declared *after* the media block; equal specificity, so the later rule wins. Fix: put the media block after every rule it must override.
+7. **`color-mix()` declared on `:root` does not re-resolve on a subtree.** Custom properties substitute at computed-value time on the element that declares them, so overriding `--pdf-ink-0` on `main` leaves a `:root`-declared `--pdf-body` pointing at the old inputs. To re-point a whole subtree, redeclare the derived tokens too, with literal values.
+8. **Variations are per-user data.** Selecting a style variation changes only the logged-in admin's view. Whatever look you want everyone to get must be baked into `theme.json`'s palette and `styles.color`.
+9. **Site Editor variation pills have no text.** Entries for palette-only variations render as unlabeled previews; their names live in `aria-label` on `.global-styles-ui-variations_item`. Do not conclude a variation is missing because no label is visible.
 
 ## Caveats: stale and legacy content
 

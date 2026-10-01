@@ -191,6 +191,100 @@ if ( ! function_exists( 'pdforce_block_styles' ) ) :
 endif;
 add_action( 'init', 'pdforce_block_styles' );
 
+if ( ! function_exists( 'pdforce_title_figure_pattern' ) ) :
+	/**
+	 * The single alternation that decides which runs of a post title are data
+	 * rather than prose. One left-to-right pass, so a token is never wrapped
+	 * twice: SPR26/3331 is taken by the docket branch before the bare-number
+	 * branch ever reaches the 26.
+	 *
+	 * @since Parent Data Force 1.16.0
+	 *
+	 * @return string
+	 */
+	function pdforce_title_figure_pattern() {
+		// A count is data together with what it counts: "45 Agreements" is one
+		// token, not a bare numeral followed by prose. Trailing \b keeps the noun
+		// from swallowing a longer word that merely starts the same way.
+		$noun = '(?:pages?|records?|agreements?|requests?|emails?|documents?|categories|items?|applicants?|responses?)';
+		return '~(?:'
+			. '(?:M\.\s*)?G\.L\.\s*c\.\s*\d+[A-Z]*,?\s*§+\s*\d+[A-Z]*(?:\([0-9A-Za-z]+\))*'
+			. '|§+\s*\d+[A-Z]*(?:\([0-9A-Za-z]+\))*'
+			. '|\d{3}\s*CMR\s*\d+\.\d+(?:\([0-9A-Za-z]+\))*'
+			. '|O\.C\.G\.A\.\s*§+\s*[0-9.\-]+'
+			. '|SPR\d{2}/\d+'
+			. '|\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?'
+			. '|\d[\d,]*(?:\.\d+)?\s?%'
+			. '|\b\d{1,3}(?:,\d{3})+(?:\s+' . $noun . '\b)?'
+			. '|(?<![\d.,$A-Za-z])(?!(?:19|20)\d{2}\b)\d{2,3}(?![\d.,])(?:\s+' . $noun . '\b)?'
+			. ')~iu';
+	}
+endif;
+
+if ( ! function_exists( 'pdforce_emphasise_title_text' ) ) :
+	/**
+	 * Wrap data runs in one text string. A small stop list keeps numerals
+	 * that are really prose words ("Chapter 30", "July 30") out of the
+	 * emphasis. Months are on the list because a bare day-of-month otherwise
+	 * reads as a figure.
+	 *
+	 * @since Parent Data Force 1.16.0
+	 *
+	 * @param string $text Plain title text, entities intact.
+	 * @return string
+	 */
+	function pdforce_emphasise_title_text( $text ) {
+		$stop = '~\b(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec|chapter|article|grade|section|part|level|page|appendix|schedule|act)\.?\s*$~i';
+		if ( ! preg_match_all( pdforce_title_figure_pattern(), $text, $found,
+			PREG_OFFSET_CAPTURE | PREG_SET_ORDER ) ) {
+			return $text;
+		}
+		$out    = '';
+		$cursor = 0;
+		foreach ( $found as $set ) {
+			$token = $set[0][0];
+			$at    = $set[0][1];
+			$out  .= substr( $text, $cursor, $at - $cursor );
+			$before = $at > 0 ? substr( $text, max( 0, $at - 24 ), min( 24, $at ) ) : '';
+			$out  .= preg_match( $stop, $before )
+				? $token
+				: '<span class="pdf-figure">' . $token . '</span>';
+			$cursor = $at + strlen( $token );
+		}
+		return $out . substr( $text, $cursor );
+	}
+endif;
+
+if ( ! function_exists( 'pdforce_emphasise_post_title' ) ) :
+	/**
+	 * Emphasis applied to the rendered post-title block, front end only, so
+	 * the block editor canvas, the REST payload, the document <title> and the
+	 * share URLs all keep the plain string.
+	 *
+	 * @since Parent Data Force 1.16.0
+	 *
+	 * @param string $content Rendered block HTML.
+	 * @return string
+	 */
+	function pdforce_emphasise_post_title( $content, $parsed_block = null, $instance = null ) {
+		if ( is_admin() || wp_doing_ajax() ) {
+			return $content;
+		}
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return $content;
+		}
+		// Text nodes only: the heading's own tags and any <a> wrapper survive.
+		return preg_replace_callback(
+			'~(<[^>]+>)((?:(?!<).)+)~s',
+			function ( $m ) {
+				return $m[1] . pdforce_emphasise_title_text( $m[2] );
+			},
+			$content
+		);
+	}
+endif;
+add_filter( 'render_block_core/post-title', 'pdforce_emphasise_post_title' );
+
 if ( ! function_exists( 'pdforce_pattern_categories' ) ) :
 	/**
 	 * Registers pattern categories.

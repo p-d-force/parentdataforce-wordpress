@@ -256,3 +256,46 @@ if ( ! function_exists( 'pdforce_format_binding' ) ) :
 		}
 	}
 endif;
+
+if ( ! function_exists( 'pdforce_brand_schema' ) ) :
+	/**
+	 * Outputs Organization + WebSite JSON-LD on the front page only, so search
+	 * engines have an explicit brand logo signal for result presentation.
+	 *
+	 * The Organization.logo points at the 1024x1024 brand logo (>=112 px, which
+	 * is what structured data requires); the 48-multiple favicon guidance is a
+	 * separate mechanism (the 432x432 Site Icon).
+	 *
+	 * @since Parent Data Force 1.0
+	 */
+	function pdforce_brand_schema() {
+		if ( ! is_front_page() ) {
+			return;
+		}
+
+		$graph = array(
+			'@context' => 'https://schema.org',
+			'@graph'   => array(
+				array(
+					'@type' => 'WebSite',
+					'@id'   => home_url( '/' ) . '#website',
+					'name'  => 'Parent Data Force',
+					'url'   => 'https://www.parentdataforce.com/',
+				),
+				array(
+					'@type' => 'Organization',
+					'@id'   => home_url( '/' ) . '#organization',
+					'name'  => 'Parent Data Force',
+					'url'   => 'https://www.parentdataforce.com/',
+					'logo'  => array(
+						'@type' => 'ImageObject',
+						'url'   => 'https://www.parentdataforce.com/news/wp-content/uploads/brand/logo.png',
+					),
+				),
+			),
+		);
+
+		echo '<script type="application/ld+json">' . wp_json_encode( $graph ) . "</script>\n";
+	}
+endif;
+add_action( 'wp_head', 'pdforce_brand_schema', 5 );

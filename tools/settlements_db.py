@@ -182,9 +182,11 @@ def cmd_migrate(args):
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(districts)").fetchall()}
     has_docs = bool(conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'").fetchone())
-    if "fee_estimate" in cols and "fee_hours" in cols and "records_count" in cols and has_docs:
+    managed = ("fee_estimate", "fee_hours", "records_count", "spr_number",
+               "fee_superseded")
+    if all(c in cols for c in managed) and has_docs:
         print("schema current: 10 statuses, fee_estimate/fee_hours/records_count/"
-              "appeal_note, documents present")
+              "appeal_note, spr_number, fee_superseded, documents present")
         conn.close()
         return
     if "fee_estimate" not in cols:
@@ -208,6 +210,8 @@ def cmd_migrate(args):
         conn.execute("ALTER TABLE districts ADD COLUMN records_count INTEGER")
     if "spr_number" not in cols:
         conn.execute("ALTER TABLE districts ADD COLUMN spr_number TEXT")
+    if "fee_superseded" not in cols:
+        conn.execute("ALTER TABLE districts ADD COLUMN fee_superseded TEXT")
     conn.commit()
     conn.close()
     print("migrated: schema brought current (statuses, fee_estimate/fee_hours/"

@@ -21,7 +21,7 @@ $pdf_stat_sets = array(
 	// Set 1 — the project at a glance.
 	array(
 		array( 'num' => '65', 'lbl' => __( 'Districts requested', 'pdforce' ) ),
-		array( 'num' => '16', 'lbl' => __( 'Receipts acknowledged', 'pdforce' ) ),
+		array( 'num' => '14', 'lbl' => __( 'Receipts acknowledged', 'pdforce' ) ),
 		array( 'num' => '1', 'lbl' => __( 'Record production published', 'pdforce' ) ),
 		array( 'num' => 'Sept. 18, 2021–present', 'lbl' => __( 'Records window', 'pdforce' ), 'range' => true ),
 	),
@@ -29,7 +29,7 @@ $pdf_stat_sets = array(
 	array(
 		array( 'num' => '27', 'lbl' => __( 'Awaiting first response', 'pdforce' ) ),
 		array( 'num' => '3', 'lbl' => __( 'Routed or re-sent', 'pdforce' ) ),
-		array( 'num' => '9', 'lbl' => __( 'SPR appeal filed', 'pdforce' ) ),
+		array( 'num' => '10', 'lbl' => __( 'SPR appeal filed', 'pdforce' ) ),
 		array( 'num' => 'Oct. 7–14', 'lbl' => __( 'Response milestones', 'pdforce' ), 'range' => true ),
 	),
 );

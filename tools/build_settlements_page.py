@@ -46,6 +46,7 @@ WHITELIST = (
     "acknowledged",
     "fee_estimate",
     "fee_hours",
+    "fee_superseded",
     "records_count",
     "last_public_update",
     "spr_number",
@@ -489,6 +490,7 @@ button.pssr-s-votes:disabled{opacity:.55;cursor:default}
 .pssr-badge--response_fee_estimate{border-color:var(--pdf-signal-hi,#ffa366);color:var(--pdf-signal-hi,#ffa366)}
 .pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
 .pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
+.pssr-fee-superseded{opacity:.55;text-decoration:line-through;margin-inline-end:.35em}
 .pssr-cta{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.5rem}
 .pssr-template{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616)}
 .pssr-template summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
@@ -788,16 +790,18 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
         data_district = attr(f"{r['district']} {r['jurisdiction']}".lower())
         badge = STATUS_BADGES[r["status"]]
         status_cell = f'<span class="pssr-badge pssr-badge--{attr(r["status"])}">{esc(badge)}</span>'
+        sup = (f'<del class="pssr-fee-superseded">{esc(r["fee_superseded"])}</del> '
+               if r.get("fee_superseded") else "")
         if r.get("fee_estimate"):
             status_cell += (f' <span class="pssr-badge pssr-badge--fee-estimate">'
-                            f'Fee estimate: {esc(r["fee_estimate"])}</span>')
+                            f'Fee estimate: {sup}{esc(r["fee_estimate"])}</span>')
         ack_cell = fmt_short(r["acknowledged"]) if r.get("acknowledged") else "—"
         if r.get("fee_estimate"):
             if r.get("fee_hours"):
                 hours = int(r["fee_hours"]) if float(r["fee_hours"]).is_integer() else r["fee_hours"]
-                fee_cell = f"{esc(r['fee_estimate'])} · {hours} hrs"
+                fee_cell = f"{sup}{esc(r['fee_estimate'])} · {hours} hrs"
             else:
-                fee_cell = esc(r["fee_estimate"])
+                fee_cell = f"{sup}{esc(r['fee_estimate'])}"
         elif r["status"] in ("records_received_review_pending", "partial_production",
                              "complete_published", "no_responsive_records"):
             fee_cell = None

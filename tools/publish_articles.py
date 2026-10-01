@@ -194,6 +194,12 @@ ARTICLES = [
         "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article31_settlement_update.md",
+        "slug": "westfield-bills-200-holbrook-produces-four",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 

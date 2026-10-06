@@ -400,6 +400,6 @@ This is a portability caveat: the pipeline breaks if that folder moves.
 
 Remote: `https://github.com/p-d-force/parentdataforce-wordpress.git`, branch `main`.
 
-Pushing from this shell fails: `SSH_ASKPASS=false` is exported and the Windows credential store (`wincredman`) is empty and unwritable headless, so git cannot authenticate or prompt. Push from a normal terminal instead.
+Pushing **does** work from the agent shell over HTTPS — verified 2026-10-06 with an authenticated `git push --force-with-lease`. Credentials are cached by the Windows credential manager for this account, so `git push` needs no prompt. An earlier note here claimed otherwise; it was wrong. Two caveats: `git push` fails with a non-fast-forward rejection whenever `origin/main` holds commits the local branch lacks, and any history rewrite needs `git filter-repo`, which removes the `origin` remote — re-add it afterwards.
 
 Commit convention observed: imperative subject line, then grouped bullet sections (`Theme rename:`, `Tooling:`, `Cleanup:`). Rename-heavy commits should show as `R` (rename) entries in `git status`, not delete+add — use `git mv`.

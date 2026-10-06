@@ -17,6 +17,8 @@ Pure stdlib. Supports exactly the subset used by the "sped news" articles:
                                   articles to the project page)
   - `==figure==`               -> <span class="pdf-figure"> (inline emphasis for a
                                   data run: money, dockets, counts)
+  - `==figure==` in the H1     -> title highlight: the marker is stripped from the
+                                  plain title and reported by title_highlight()
   - `!> text`                 -> core/paragraph, class "pdf-callout" (boxed aside)
   - `!| text`                 -> core/paragraph, class "pdf-pullquote" (large quote)
 
@@ -34,6 +36,21 @@ OL_RE = re.compile(r"^\d+\.\s+(.*)$")
 IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^()\s]+)\)$")
 
 FIG_RE = re.compile(r"==([^=\n]+?)==")
+
+
+def title_highlight(md_text):
+    """Return the `==marked==` run from the H1, or None. The marker is
+    editorial direction for the theme's front-end title filter, never markup:
+    convert() strips it so the plain title stays plain everywhere else."""
+    for line in md_text.splitlines():
+        if not line.strip():
+            continue
+        if line.startswith("# "):
+            m = FIG_RE.search(line[2:])
+            return m.group(1).strip() if m else None
+        break
+    return None
+
 CALLOUT_RE = re.compile(r"^!>\s*(.*)$")
 PULL_RE = re.compile(r"^!\|\s*(.*)$")
 
@@ -70,7 +87,7 @@ def convert(md_text):
             i += 1
             continue
         if line.startswith("# "):
-            title = line[2:].strip()
+            title = FIG_RE.sub(r"\1", line[2:]).strip()
         break
 
     rest = lines[i + 1 :] if title else lines

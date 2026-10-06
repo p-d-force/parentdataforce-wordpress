@@ -6,7 +6,7 @@
 .pdex {
 	max-width: 560px;
 	margin-inline: auto;
-	font-family: var(--wp--preset--font-family--body, Inter, sans-serif);
+	font-family: var(--wp--preset--font-family--body, Vollkorn, serif);
 }
 
 .pdex h1 {

@@ -102,7 +102,7 @@
 			s.width = Math.max(1, Math.ceil(cellW * dpr));
 			s.height = Math.max(1, Math.ceil(cellH * dpr));
 			var c = s.getContext('2d');
-			c.font = fontPx + 'px "JetBrains Mono","Fira Code",monospace';
+			c.font = fontPx + 'px "Fira Code", ui-monospace, monospace';
 			c.textAlign = 'center'; c.textBaseline = 'middle';
 			c.fillStyle = css(rgb);
 			c.fillText(glyph, s.width / 2, s.height / 2 + fontPx * 0.04);
@@ -389,7 +389,7 @@
 			canvas.height = Math.round(h * dpr);
 			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 			fontPx = parseInt(opts.cell || canvas.getAttribute('data-cell') || '15', 10);
-			ctx.font = fontPx + 'px "JetBrains Mono","Fira Code",monospace';
+			ctx.font = fontPx + 'px "Fira Code", ui-monospace, monospace';
 			var m = ctx.measureText('█');
 			cellW = Math.max(6, m.width || fontPx * 0.6);
 			cellH = Math.round(fontPx * 1.12);

@@ -1,0 +1,58 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.7/theme.json",
+	"version": 3,
+	"title": "Paper",
+	"slug": "paper",
+	"settings": {
+		"color": {
+			"palette": [
+				{
+					"color": "#f4f1ec",
+					"name": "Base",
+					"slug": "base"
+				},
+				{
+					"color": "#16181c",
+					"name": "Contrast",
+					"slug": "contrast"
+				},
+				{
+					"color": "#b8430a",
+					"name": "Accent 1",
+					"slug": "accent-1"
+				},
+				{
+					"color": "#8a3308",
+					"name": "Accent 2",
+					"slug": "accent-2"
+				},
+				{
+					"color": "#ffffff",
+					"name": "Accent 3",
+					"slug": "accent-3"
+				},
+				{
+					"color": "#5f6469",
+					"name": "Accent 4",
+					"slug": "accent-4"
+				},
+				{
+					"color": "#d9d3c9",
+					"name": "Accent 5",
+					"slug": "accent-5"
+				},
+				{
+					"color": "#ece7df",
+					"name": "Accent 6",
+					"slug": "accent-6"
+				}
+			]
+		}
+	},
+	"styles": {
+		"color": {
+			"text": "var:preset|color|contrast"
+		},
+		"css": "body{background-color:var(--pdf-ink-0);color:var(--pdf-paper);}\n:root{--pdf-grain-opacity:0.02;}"
+	}
+}

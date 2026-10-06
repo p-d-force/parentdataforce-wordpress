@@ -221,6 +221,35 @@ if ( ! function_exists( 'pdforce_title_figure_pattern' ) ) :
 	}
 endif;
 
+if ( ! function_exists( 'pdforce_title_highlight_meta' ) ) :
+	/**
+	 * Register the per-post title highlight.
+	 *
+	 * An article marks one run of its own H1 as the emphasised portion
+	 * (`==like this==`). The publisher strips that marker from the stored
+	 * title and writes the phrase here instead, so the plain string stays
+	 * plain in <title>, REST, search and every card, and the emphasis is
+	 * applied only where it is seen: the rendered post-title block.
+	 *
+	 * @since Parent Data Force 1.17.0
+	 */
+	function pdforce_title_highlight_meta() {
+		register_post_meta(
+			'post',
+			'_pdforce_title_highlight',
+			array(
+				'type'         => 'string',
+				'single'       => true,
+				'show_in_rest' => true,
+				'auth_callback' => function ( $allowed, $meta_key, $post_id ) {
+					return current_user_can( 'edit_post', $post_id );
+				},
+			)
+		);
+	}
+endif;
+add_action( 'init', 'pdforce_title_highlight_meta' );
+
 if ( ! function_exists( 'pdforce_emphasise_title_text' ) ) :
 	/**
 	 * Wrap data runs in one text string. A small stop list keeps numerals
@@ -228,12 +257,30 @@ if ( ! function_exists( 'pdforce_emphasise_title_text' ) ) :
 	 * emphasis. Months are on the list because a bare day-of-month otherwise
 	 * reads as a figure.
 	 *
+	 * When the post carries an explicit highlight phrase, that phrase is
+	 * wrapped whole and the automatic data-run pass is skipped inside it, so
+	 * an editorial run like "Waived Its $100 Fee" is one emphasised span
+	 * rather than a span nested in a span.
+	 *
 	 * @since Parent Data Force 1.16.0
 	 *
-	 * @param string $text Plain title text, entities intact.
+	 * @param string $text      Plain title text, entities intact.
+	 * @param string $highlight Phrase to emphasise, or '' for the data-run pass.
 	 * @return string
 	 */
-	function pdforce_emphasise_title_text( $text ) {
+	function pdforce_emphasise_title_text( $text, $highlight = '' ) {
+		if ( '' !== $highlight && '' !== $text ) {
+			$needle = html_entity_decode( wp_strip_all_tags( $highlight ), ENT_QUOTES );
+			$at     = stripos( $text, $needle );
+			if ( false !== $at ) {
+				return substr( $text, 0, $at )
+					. '<span class="pdf-figure">'
+					. substr( $text, $at, strlen( $needle ) )
+					. '</span>'
+					. substr( $text, $at + strlen( $needle ) );
+			}
+		}
+
 		$stop = '~\b(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec|chapter|article|grade|section|part|level|page|appendix|schedule|act)\.?\s*$~i';
 		if ( ! preg_match_all( pdforce_title_figure_pattern(), $text, $found,
 			PREG_OFFSET_CAPTURE | PREG_SET_ORDER ) ) {
@@ -263,7 +310,9 @@ if ( ! function_exists( 'pdforce_emphasise_post_title' ) ) :
 	 *
 	 * @since Parent Data Force 1.16.0
 	 *
-	 * @param string $content Rendered block HTML.
+	 * @param string         $content       Rendered block HTML.
+	 * @param array|null     $parsed_block  Parsed block.
+	 * @param WP_Block|null  $instance      Block instance.
 	 * @return string
 	 */
 	function pdforce_emphasise_post_title( $content, $parsed_block = null, $instance = null ) {
@@ -273,17 +322,19 @@ if ( ! function_exists( 'pdforce_emphasise_post_title' ) ) :
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
 			return $content;
 		}
+		$highlight = (string) get_post_meta( get_the_ID(), '_pdforce_title_highlight', true );
 		// Text nodes only: the heading's own tags and any <a> wrapper survive.
 		return preg_replace_callback(
 			'~(<[^>]+>)((?:(?!<).)+)~s',
-			function ( $m ) {
-				return $m[1] . pdforce_emphasise_title_text( $m[2] );
+			function ( $m ) use ( $highlight ) {
+				return $m[1] . pdforce_emphasise_title_text( $m[2], $highlight );
 			},
 			$content
 		);
 	}
 endif;
-add_filter( 'render_block_core/post-title', 'pdforce_emphasise_post_title' );
+add_filter( 'render_block_core/post-title', 'pdforce_emphasise_post_title', 10, 1 );
+
 
 if ( ! function_exists( 'pdforce_pattern_categories' ) ) :
 	/**

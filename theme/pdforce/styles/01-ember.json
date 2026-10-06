@@ -1,0 +1,57 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.7/theme.json",
+	"version": 3,
+	"title": "Ember",
+	"slug": "ember",
+	"settings": {
+		"color": {
+			"palette": [
+				{
+					"color": "#101112",
+					"name": "Base",
+					"slug": "base"
+				},
+				{
+					"color": "#dcdfe3",
+					"name": "Contrast",
+					"slug": "contrast"
+				},
+				{
+					"color": "#ff5a1f",
+					"name": "Accent 1",
+					"slug": "accent-1"
+				},
+				{
+					"color": "#ffa366",
+					"name": "Accent 2",
+					"slug": "accent-2"
+				},
+				{
+					"color": "#17191b",
+					"name": "Accent 3",
+					"slug": "accent-3"
+				},
+				{
+					"color": "#9aa0a6",
+					"name": "Accent 4",
+					"slug": "accent-4"
+				},
+				{
+					"color": "#383c41",
+					"name": "Accent 5",
+					"slug": "accent-5"
+				},
+				{
+					"color": "#202327",
+					"name": "Accent 6",
+					"slug": "accent-6"
+				}
+			]
+		}
+	},
+	"styles": {
+		"color": {
+			"text": "var:preset|color|contrast"
+		}
+	}
+}

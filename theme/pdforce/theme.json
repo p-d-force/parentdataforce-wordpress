@@ -9,12 +9,12 @@
 			"defaultPalette": false,
 			"palette": [
 				{
-					"color": "#0b0b0b",
+					"color": "#101112",
 					"name": "Base",
 					"slug": "base"
 				},
 				{
-					"color": "#f5f5f5",
+					"color": "#dcdfe3",
 					"name": "Contrast",
 					"slug": "contrast"
 				},
@@ -29,22 +29,22 @@
 					"slug": "accent-2"
 				},
 				{
-					"color": "#161616",
+					"color": "#17191b",
 					"name": "Accent 3",
 					"slug": "accent-3"
 				},
 				{
-					"color": "#a0a0a0",
+					"color": "#9aa0a6",
 					"name": "Accent 4",
 					"slug": "accent-4"
 				},
 				{
-					"color": "#2a2a2a",
+					"color": "#383c41",
 					"name": "Accent 5",
 					"slug": "accent-5"
 				},
 				{
-					"color": "#1d1d1d",
+					"color": "#202327",
 					"name": "Accent 6",
 					"slug": "accent-6"
 				}
@@ -152,32 +152,55 @@
 			],
 			"fontFamilies": [
 				{
-					"name": "Inter",
-					"slug": "inter",
-					"fontFamily": "Inter, sans-serif",
+					"name": "Vollkorn",
+					"slug": "body",
+					"fontFamily": "Vollkorn, serif",
 					"fontFace": [
 						{
 							"src": [
-								"https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800"
+								"file:./assets/fonts/vollkorn/Vollkorn-Italic-VariableFont_wght.woff2"
 							],
-							"fontWeight": "200 800",
+							"fontWeight": "400 900",
+							"fontStyle": "italic",
+							"fontFamily": "Vollkorn"
+						},
+						{
+							"src": [
+								"file:./assets/fonts/vollkorn/Vollkorn-VariableFont_wght.woff2"
+							],
+							"fontWeight": "400 900",
 							"fontStyle": "normal",
-							"fontFamily": "Inter"
+							"fontFamily": "Vollkorn"
 						}
 					]
 				},
 				{
-					"name": "JetBrains Mono",
-					"slug": "jetbrains-mono",
-					"fontFamily": "'JetBrains Mono', monospace",
+					"name": "Fira Code",
+					"slug": "mono",
+					"fontFamily": "\"Fira Code\", monospace",
 					"fontFace": [
 						{
 							"src": [
-								"https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500"
+								"file:./assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2"
 							],
 							"fontWeight": "300 700",
 							"fontStyle": "normal",
-							"fontFamily": "'JetBrains Mono'"
+							"fontFamily": "\"Fira Code\""
+						}
+					]
+				},
+				{
+					"name": "Inter",
+					"slug": "ui",
+					"fontFamily": "Inter, sans-serif",
+					"fontFace": [
+						{
+							"src": [
+								"file:./assets/fonts/inter/InterVariable.woff2"
+							],
+							"fontWeight": "100 900",
+							"fontStyle": "normal",
+							"fontFamily": "Inter"
 						}
 					]
 				}
@@ -187,8 +210,8 @@
 	},
 	"styles": {
 		"color": {
-			"background": "#0b0b0b",
-			"text": "#f5f5f5"
+			"background": "#101112",
+			"text": "#dcdfe3"
 		},
 		"spacing": {
 			"blockGap": "1.5rem",
@@ -198,10 +221,10 @@
 			}
 		},
 		"typography": {
-			"fontFamily": "var:preset|font-family|inter",
-			"fontSize": "var:preset|font-size|large",
+			"fontFamily": "var:preset|font-family|body",
+			"fontSize": "var:preset|font-size|medium",
 			"fontWeight": "400",
-			"lineHeight": "1.6"
+			"lineHeight": "1.65"
 		},
 		"blocks": {
 			"core/code": {
@@ -210,7 +233,7 @@
 					"text": "#f5f5f5"
 				},
 				"typography": {
-					"fontFamily": "var:preset|font-family|jetbrains-mono",
+					"fontFamily": "var:preset|font-family|mono",
 					"fontSize": "var:preset|font-size|medium",
 					"fontWeight": "400",
 					"lineHeight": "1.6"

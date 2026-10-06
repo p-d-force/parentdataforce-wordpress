@@ -477,6 +477,15 @@ button.pssr-s-votes:disabled{opacity:.55;cursor:default}
 .pssr-s-milestone a:hover{color:var(--pdf-signal,#ff5a1f)}
 .pssr-s-docket{font-family:var(--pdf-mono,monospace);font-size:.6875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);white-space:nowrap}
 .pssr-card{margin:0;padding:.4rem .9rem .9rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.55rem 1.25rem;border-top:1px solid var(--pdf-line,#2a2a2a)}
+.pssr-card--tracker{grid-template-columns:repeat(6,minmax(0,1fr))}
+.pssr-card--tracker>div{min-width:0}
+.pssr-card--tracker>div.pssr-note-cell{grid-column:1/-1}
+.pssr-card--tracker dd .pssr-fee-superseded{display:block;margin-inline-end:0}
+.pssr-card--tracker dd .pssr-fee-waived{display:block}
+.pssr-badge--fee-estimate{white-space:normal}
+@media (max-width:1100px){.pssr-card--tracker{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:719px){.pssr-card--tracker{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:479px){.pssr-card--tracker{grid-template-columns:minmax(0,1fr)}}
 .pssr-card dt{font-family:var(--pdf-mono,monospace);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pdf-mid,#a0a0a0);margin-bottom:.15rem}
 .pssr-card dd{margin:0;font-size:.9375rem}
 .pssr-card .pssr-note{font-size:.875rem;color:rgba(245,245,245,.92)}
@@ -491,6 +500,8 @@ button.pssr-s-votes:disabled{opacity:.55;cursor:default}
 .pssr-badge--appeal_filed{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
 .pssr-badge--fee-estimate{border-color:var(--pdf-mid,#a0a0a0);color:var(--pdf-mid,#a0a0a0)}
 .pssr-fee-superseded{opacity:.55;text-decoration:line-through;margin-inline-end:.35em}
+.pssr-fee-waived{font-size:.8125rem;color:var(--pdf-signal-hi,#ffa366)}
+.pssr-badge--fee-waived{background:var(--pdf-signal,#ff5a1f);border-color:var(--pdf-signal,#ff5a1f);color:#160801;font-weight:700}
 .pssr-cta{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616);padding:1.5rem}
 .pssr-template{border:1px solid var(--pdf-line,#2a2a2a);background:var(--pdf-ink-1,#161616)}
 .pssr-template summary{cursor:pointer;padding:1rem 1.25rem;font-family:var(--pdf-mono,monospace);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pdf-signal,#ff5a1f)}
@@ -786,7 +797,9 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
         dl.sort(key=lambda d: doc_order.get(d.get("kind"), 99))
     tracker_rows = []
     for r in rows:
-        note = esc(r["public_note"]) if r.get("public_note") else "—"
+        note_cell = (f'<div class="pssr-note-cell"><dt>Latest note</dt>'
+                     f'<dd class="pssr-note">{esc(r["public_note"])}</dd></div>'
+                     if r.get("public_note") else "")
         data_district = attr(f"{r['district']} {r['jurisdiction']}".lower())
         badge = STATUS_BADGES[r["status"]]
         status_cell = f'<span class="pssr-badge pssr-badge--{attr(r["status"])}">{esc(badge)}</span>'
@@ -795,6 +808,9 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
         if r.get("fee_estimate"):
             status_cell += (f' <span class="pssr-badge pssr-badge--fee-estimate">'
                             f'Fee estimate: {sup}{esc(r["fee_estimate"])}</span>')
+        if r.get("fee_waived"):
+            status_cell += (f' <span class="pssr-badge pssr-badge--fee-waived">'
+                            f'Fee waived {fmt_short(r["fee_waived"])}</span>')
         ack_cell = fmt_short(r["acknowledged"]) if r.get("acknowledged") else "—"
         if r.get("fee_estimate"):
             if r.get("fee_hours"):
@@ -807,6 +823,9 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
             fee_cell = None
         else:
             fee_cell = "—"
+        if r.get("fee_waived"):
+            fee_cell += (f'<span class="pssr-fee-waived">Waived '
+                         f'{fmt_short(r["fee_waived"])}</span>')
         if r.get("records_url"):
             count_prefix = f'{r["records_count"]} · ' if r.get("records_count") else ""
             records_cell = (f'{count_prefix}<a href="{attr(r["records_url"])}" '
@@ -836,8 +855,6 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
                          f'title="Published production (PII-reviewed)">Records published</a>')
         elif r.get("acknowledged"):
             milestone = f'<span class="pssr-s-milestone">Acknowledged {fmt_short(r["acknowledged"])}</span>'
-        elif r.get("fee_estimate"):
-            milestone = f'<span class="pssr-s-milestone">Fee {esc(r["fee_estimate"])}</span>'
         elif r["expected_initial_response"]:
             milestone = (f'<span class="pssr-s-milestone">Response due '
                          f'{fmt_short(r["expected_initial_response"])}</span>')
@@ -857,19 +874,15 @@ def build_blocks(project, rows, documents=(), queue=(), tracker_votes=None):
             f"{status_cell}"
             f"{milestone}"
             f"</summary>"
-            f'<dl class="pssr-card">'
+            f'<dl class="pssr-card pssr-card--tracker">'
             f"<div><dt>Timeline</dt><dd><span>{timeline_head}</span>"
             f'<span class="pssr-expected">{timeline_tail}</span></dd></div>'
             f"<div><dt>Acknowledged</dt><dd>{ack_cell}</dd></div>"
             f"<div><dt>Fee</dt><dd>{fee_cell if fee_cell is not None else ""}</dd></div>"
             f"<div><dt>Records</dt><dd>{records_cell}</dd></div>"
-            f"<div><dt>Status</dt><dd>{status_cell}</dd></div>"
-            f"<div><dt>Latest note</dt><dd>{note}</dd></div>"
             f"<div><dt>Docket</dt><dd>{docket_cell}</dd></div>"
             f"<div><dt>Documents</dt><dd>{docs_cell}</dd></div>"
-            f'<div><dt>Vote</dt><dd><button type="button" class="pdq-vote" '
-            f'data-district="{attr(r["district"])}" '
-            f'aria-label="{attr("Vote up " + r["district"])}">▲ Vote up</button></dd></div>'
+            f"{note_cell}"
             f"</dl>"
             f"</details>"
         )

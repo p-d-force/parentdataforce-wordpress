@@ -1,0 +1,55 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.7/theme.json",
+	"version": 3,
+	"title": "Current (before the redesign)",
+	"slug": "current",
+	"settings": {
+		"color": {
+			"palette": [
+				{
+					"color": "#0b0b0b",
+					"name": "Base",
+					"slug": "base"
+				},
+				{
+					"color": "#f5f5f5",
+					"name": "Contrast",
+					"slug": "contrast"
+				},
+				{
+					"color": "#ff5a1f",
+					"name": "Accent 1",
+					"slug": "accent-1"
+				},
+				{
+					"color": "#ffa366",
+					"name": "Accent 2",
+					"slug": "accent-2"
+				},
+				{
+					"color": "#161616",
+					"name": "Accent 3",
+					"slug": "accent-3"
+				},
+				{
+					"color": "#a0a0a0",
+					"name": "Accent 4",
+					"slug": "accent-4"
+				},
+				{
+					"color": "#2a2a2a",
+					"name": "Accent 5",
+					"slug": "accent-5"
+				},
+				{
+					"color": "#1d1d1d",
+					"name": "Accent 6",
+					"slug": "accent-6"
+				}
+			]
+		}
+	},
+	"styles": {
+		"css": "@font-face{font-family:'Inter';font-style:normal;font-weight:300 800;font-display:swap;src:url(https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800) format('woff2');}\n@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 500;font-display:swap;src:url(https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500) format('woff2');}\nbody,input,textarea,select,button{font-family:'Inter',sans-serif;}\n:root{--pdf-body:#e8e8e8;--pdf-muted-2:#bdbdbd;--pdf-surface:#161616;--pdf-surface-2:#1d1d1d;--pdf-grain-opacity:0;}\nbody{background-color:#0b0b0b;color:#f5f5f5;font-size:var(--wp--preset--font-size--large);line-height:1.6;}\n.pdf-kicker,.pdf-stat-num,.pdf-stat-lbl,.pdf-drow-date,.pdf-drow-cat,.pdf-tab,.pdf-share-link,.pdf-share-label,.pdf-response-nav a,.pdf-article-kicker,.pdf-article-accent,.pdf-article .wp-block-post-content h2::before,.pdf-article .wp-block-post-content > p:first-of-type::first-letter{font-family:'JetBrains Mono',monospace;}\nbody::before{display:none;}"
+	}
+}

@@ -11,6 +11,13 @@ slugify(title); an entry may pin a different slug with a "slug" key (used by
 the per-district response series). Categories/tags, when given, are assigned
 to NEW posts only -- existing posts 15/16/17 are never modified.
 
+A title may mark one run as the emphasised portion with `==like this==` on the
+H1. The marker never reaches WordPress: convert() strips it, and the phrase
+is written to the `_pdforce_title_highlight` post meta, which the theme's
+front-end title filter turns into a single .pdf-figure span. The plain title
+stays plain in <title>, REST, search and cards. Unlike categories/tags, the
+highlight IS re-applied to existing posts on every run.
+
 Usage:
   python publish_articles.py            # create missing drafts (idempotent)
   python publish_articles.py --verify   # also GET each draft back and check
@@ -20,7 +27,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from md_to_blocks import convert, slugify  # noqa: E402
+from md_to_blocks import convert, slugify, title_highlight  # noqa: E402
 import wp_api  # noqa: E402
 
 TEMPLATE = "single-long-form"
@@ -200,6 +207,54 @@ ARTICLES = [
         "categories": [9, 8],    # News, District Data
         "tags": [13, 15],        # Public Records, Transparency
     },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article32_worcester_phishing_incident.md",
+        "slug": "worcester-phishing-118-pages-of-records",
+        "categories": [6, 9],   # Investigations, News
+        "tags": [13, 15],       # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article33_weston_dei_records.md",
+        "slug": "weston-dei-coordinator-records-fee-dispute",
+        "categories": [16, 9],   # Public Records (Records Law), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article34_middleborough_hiring_records.md",
+        "slug": "middleborough-principal-hiring-records-prr-26-450",
+        "categories": [16, 9],   # Public Records (Records Law), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article35_north_attleborough_waiver.md",
+        "slug": "north-attleborough-waived-100-fee",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article36_east_bridgewater_3207_determination.md",
+        "slug": "east-bridgewater-3207-determination",
+        "categories": [16, 9],   # Public Records (Records Law), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article37_east_bridgewater_blackout_records.md",
+        "slug": "east-bridgewater-blackout-and-the-missing-february-2025-record",
+        "categories": [16, 9],   # Public Records (Records Law), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article38_east_bridgewater_second_fee_dispute.md",
+        "slug": "east-bridgewater-second-fee-dispute-350-spr-4068-4069",
+        "categories": [16, 9],   # Public Records (Records Law), News
+        "tags": [13, 15],        # Public Records, Transparency
+    },
+    {
+        "path": r"C:/Users/paren/Development/sped news/article39_settlement_fee_escalation.md",
+        "slug": "bridgewater-raynham-27550-whitman-hanson-settlement-fees",
+        "categories": [9, 8],    # News, District Data
+        "tags": [13, 15],        # Public Records, Transparency
+    },
 ]
 
 
@@ -211,14 +266,20 @@ def find_by_slug(wp, slug):
 def main():
     wp = wp_api.client()
     verify = "--verify" in sys.argv
+    only = None
+    if "--slug" in sys.argv:
+        only = sys.argv[sys.argv.index("--slug") + 1]
     results = []
 
     for entry in ARTICLES:
+        if only and entry.get("slug") != only:
+            continue
         path = entry["path"]
         with open(path, encoding="utf-8") as f:
             md = f.read()
         title, _dek, body = convert(md)
         slug = entry.get("slug") or slugify(title)
+        highlight = title_highlight(md)
         existing = find_by_slug(wp, slug)
 
         if existing:
@@ -236,11 +297,22 @@ def main():
                 payload["categories"] = entry["categories"]
             if entry.get("tags"):
                 payload["tags"] = entry["tags"]
+            if highlight:
+                payload["meta"] = {"_pdforce_title_highlight": highlight}
             post = wp.call("POST", "/wp/v2/posts", payload, quiet=True)
             pid = post["id"]
             print(f"created draft id={pid} slug={slug} template={post.get('template')!r} len={len(body)}")
 
-        results.append({"id": pid, "slug": slug, "title": title})
+        # The highlight lives in meta, not the title text, so it is applied on
+        # every run: a post that already exists still needs it set (or cleared).
+        if highlight or existing:
+            wp.call("POST", f"/wp/v2/posts/{pid}", {"title": title,
+                    "meta": {"_pdforce_title_highlight": highlight}}, quiet=True)
+            print(f"  title highlight: {highlight!r}")
+
+        results.append({"id": pid, "slug": slug, "title": title,
+                        "title_highlight": highlight})
+
 
         if verify:
             back = wp.call("GET", f"/wp/v2/posts/{pid}?context=edit", quiet=True)

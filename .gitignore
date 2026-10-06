@@ -30,8 +30,15 @@ scratch/
 # Pristine upstream theme copy (reference only; regenerable)
 theme/pdforce/twentytwentyfive/
 
+# Node build dependencies (regenerable via npm install; never commit)
+node_modules/
+
 # Local agent session state (Mnemopi/local:// artifacts)
 .omp/
+
+# Scratch email evidence and browser-QA screenshots (local only)
+_se.json
+captures/*.png
 
 # Dated tracker snapshots (regenerated via settlements_db.py export-json; DB is authoritative)
 districts_snapshot_*.json

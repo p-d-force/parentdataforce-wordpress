@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS documents (
     kind TEXT NOT NULL,                 -- 'request' | 'response' | 'appeal'
     label TEXT NOT NULL,
     url TEXT NOT NULL,
-    UNIQUE(district, kind)
+    UNIQUE(district, kind, label)       -- one row per kind *and* label (matches live)
 );
 """
 SCHEMA = DISTRICTS_DDL + DOCUMENTS_DDL + """
@@ -183,10 +183,10 @@ def cmd_migrate(args):
     has_docs = bool(conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'").fetchone())
     managed = ("fee_estimate", "fee_hours", "records_count", "spr_number",
-               "fee_superseded")
+               "fee_superseded", "fee_waived")
     if all(c in cols for c in managed) and has_docs:
         print("schema current: 10 statuses, fee_estimate/fee_hours/records_count/"
-              "appeal_note, spr_number, fee_superseded, documents present")
+              "appeal_note, spr_number, fee_superseded, fee_waived, documents present")
         conn.close()
         return
     if "fee_estimate" not in cols:
@@ -212,10 +212,12 @@ def cmd_migrate(args):
         conn.execute("ALTER TABLE districts ADD COLUMN spr_number TEXT")
     if "fee_superseded" not in cols:
         conn.execute("ALTER TABLE districts ADD COLUMN fee_superseded TEXT")
+    if "fee_waived" not in cols:
+        conn.execute("ALTER TABLE districts ADD COLUMN fee_waived TEXT")
     conn.commit()
     conn.close()
     print("migrated: schema brought current (statuses, fee_estimate/fee_hours/"
-          "records_count/appeal_note, documents, spr_number)")
+          "records_count/appeal_note, documents, spr_number, fee_waived)")
 
 
 DEFAULT_DOC_LABELS = {
@@ -338,6 +340,13 @@ def cmd_fee(args):
     print(f"fee set on {row['district']}: {fields['fee_estimate']} "
           f"({args.hours} hrs)" if args.hours else
           f"fee set on {row['district']}: {fields['fee_estimate']}")
+
+
+def cmd_fee_waived(args):
+    conn = open_db()
+    row = _get_row(conn, args.name)
+    _stamp(conn, row, {"fee_waived": args.date, "last_public_update": args.date})
+    print(f"fee waived on {row['district']}: {args.date}")
 
 
 def cmd_records(args):
@@ -639,6 +648,10 @@ def main():
     p.add_argument("--name", required=True); p.add_argument("--amount", required=True)
     p.add_argument("--hours", type=float, help="hours claimed in a fee itemization")
     p.set_defaults(func=cmd_fee)
+    p = sub.add_parser("fee-waived")
+    p.add_argument("--name", required=True)
+    p.add_argument("--date", required=True)
+    p.set_defaults(func=cmd_fee_waived)
     p = sub.add_parser("records")
     p.add_argument("--name", required=True); p.add_argument("--count", type=int)
     p.add_argument("--url")
